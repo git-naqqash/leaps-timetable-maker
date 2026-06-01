@@ -44,7 +44,7 @@ body {
   height: 100%;
   padding: 10px;
   display: flex;
-  flex-col: col;
+  flex-direction: column;
   justify-content: space-between;
   box-sizing: border-box;
   background: #ffffff;

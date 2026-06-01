@@ -47,13 +47,12 @@ export default function Home() {
   // Step 4 & 5: Timetable Data
   // Format: { [classId]: { [slotKey]: { subject: "...", teacher: "...", isTest: false } } }
   const [timetable, setTimetable] = useState({});
-  const [timeSlots, setTimeSlots] = useState([]); // List of unique slot strings, e.g., ["4:00 PM - 4:30 PM", ...]
+  const [timeSlots, setTimeSlots] = useState([]); // List of unique slot strings
 
   const previewRef = useRef(null);
 
   // --- LOCALSTORAGE PERSISTENCE ---
   useEffect(() => {
-    // Load data from localStorage
     const savedAcademyName = localStorage.getItem("leaps_academy_name");
     const savedHeadingText = localStorage.getItem("leaps_heading_text");
     const savedLogo = localStorage.getItem("leaps_logo");
@@ -181,7 +180,6 @@ export default function Home() {
 
   // --- GENERATION ALGORITHM ---
   const generateTimetable = () => {
-    // 1. Gather all class timeslots
     const classSlotsMap = {};
     const allUniqueSlotsSet = new Set();
 
@@ -191,9 +189,7 @@ export default function Home() {
       slots.forEach((s) => allUniqueSlotsSet.add(s));
     });
 
-    // Sort the slot list chronologically
     const sortedSlots = Array.from(allUniqueSlotsSet).sort((a, b) => {
-      // Helper to extract first time part
       const getTimeMinutes = (slotStr) => {
         const timePart = slotStr.split("–")[0];
         const [time, period] = timePart.split(" ");
@@ -205,20 +201,16 @@ export default function Home() {
       return getTimeMinutes(a) - getTimeMinutes(b);
     });
 
-    // 2. Initialize fresh empty timetable mapping
     const newTimetable = {};
     classes.forEach((c) => {
       newTimetable[c.id] = {};
     });
 
-    // We keep track of active teachers at each slot to avoid double-booking
-    // Map: slotStr -> set of teacher IDs busy in this slot
     const busyTeachersPerSlot = {};
     sortedSlots.forEach((slot) => {
       busyTeachersPerSlot[slot] = new Set();
     });
 
-    // Helper: Is teacher available during a slot?
     const isTeacherAvailableForSlot = (teacher, slotStr) => {
       const [slotStartStr, slotEndStr] = slotStr.split("–");
       
@@ -239,15 +231,9 @@ export default function Home() {
       return slotStartMin >= teacherStartMin && slotEndMin <= teacherEndMin;
     };
 
-    // 3. Assign teachers to class slots
-    // To make it dynamic and interesting, we match classrooms with eligible teachers
     classes.forEach((c) => {
       const activeSlots = classSlotsMap[c.id];
       activeSlots.forEach((slot, index) => {
-        // Is it the last slot? Option to mark as "TEST" initially, or we leave it to manual
-        const isLastSlot = index === activeSlots.length - 1;
-
-        // Find a teacher available for this slot who teaches this class and is not busy
         const candidateTeachers = teachers.filter((t) => {
           const teachesThisClass = t.allowedClasses.includes(c.name);
           const availableInTime = isTeacherAvailableForSlot(t, slot);
@@ -256,10 +242,7 @@ export default function Home() {
         });
 
         if (candidateTeachers.length > 0) {
-          // Select teacher (e.g., first available, or alternating subject)
           const chosenTeacher = candidateTeachers[Math.floor(Math.random() * candidateTeachers.length)];
-          
-          // Select subject: alternate between primary and secondary if secondary exists
           const selectSubject = chosenTeacher.secondSubject && Math.random() > 0.5 
             ? chosenTeacher.secondSubject 
             : chosenTeacher.subject;
@@ -270,26 +253,17 @@ export default function Home() {
             isTest: false
           };
 
-          // Mark teacher as busy
           busyTeachersPerSlot[slot].add(chosenTeacher.id);
         } else {
-          // No teacher found
           newTimetable[c.id][slot] = {
             subject: "-",
             teacher: "-",
             isTest: false
           };
         }
-
-        // Auto-mark last slot as TEST as default if no assignments or as custom tag
-        if (isLastSlot) {
-          // The prompt says "Last slot can be manually marked as TEST."
-          // We can generate it but allow the user to easily toggle or write TEST.
-        }
       });
     });
 
-    // Update state & save
     setTimeSlots(sortedSlots);
     setTimetable(newTimetable);
     saveData({
@@ -299,7 +273,7 @@ export default function Home() {
     setActiveTab("preview");
   };
 
-  // --- MANUAL EDITING FUNCTIONS ---
+  // --- MANUAL EDITING ---
   const handleCellEdit = (classId, slot, field, value) => {
     const updated = { ...timetable };
     if (!updated[classId]) updated[classId] = {};
@@ -358,7 +332,6 @@ export default function Home() {
     const updatedClasses = [...classes, newClass];
     setClasses(updatedClasses);
 
-    // Initialize timetable slots for this class
     const updatedTimetable = { ...timetable };
     updatedTimetable[newId] = {};
     timeSlots.forEach((slot) => {
@@ -381,11 +354,10 @@ export default function Home() {
   };
 
   const handleAddTimeSlot = () => {
-    const newSlot = "08:30 PM - 09:00 PM";
+    const newSlot = "08:30 PM–09:00 PM";
     const updatedSlots = [...timeSlots, newSlot];
     setTimeSlots(updatedSlots);
 
-    // Add empty cell configurations for this slot across all classes
     const updatedTimetable = { ...timetable };
     classes.forEach((c) => {
       if (!updatedTimetable[c.id]) updatedTimetable[c.id] = {};
@@ -419,7 +391,7 @@ export default function Home() {
     if (!previewRef.current) return;
     const element = previewRef.current;
     
-    // Temporarily apply exact print dimensions for standard canvas rendering
+    // Lock dimensions during export so html2canvas renders exact A4
     const originalStyle = element.getAttribute("style");
     element.style.width = "297mm";
     element.style.height = "210mm";
@@ -429,7 +401,7 @@ export default function Home() {
 
     try {
       const canvas = await html2canvas(element, {
-        scale: 2, // High quality
+        scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff"
       });
@@ -467,7 +439,6 @@ export default function Home() {
       });
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       
-      // jsPDF setup (landscape a4: 297mm x 210mm)
       const pdf = new jsPDF({
         orientation: "landscape",
         unit: "mm",
@@ -665,7 +636,7 @@ export default function Home() {
                         for (let i = classes.length; i < parsedNum; i++) {
                           updated.push({
                             id: `class-${Date.now()}-${i}`,
-                            name: `Class ${i + 1}`,
+                            name: `${i + 9}th`,
                             startTime: "16:00",
                             endTime: "20:30"
                           });
@@ -1049,44 +1020,44 @@ export default function Home() {
           </div>
         )}
 
-        {/* Step 5: Preview and Edit */}
+        {/* Step 5 & 6: Interactive Live A4 Preview & Edit Tab */}
         {activeTab === "preview" && (
-          <div className="glass-panel p-6 shadow-md border border-stone-200 space-y-6">
-            <div className="flex flex-wrap justify-between items-center gap-4 border-b border-stone-200 pb-4">
+          <div className="space-y-6">
+            {/* Control panel and downloads */}
+            <div className="glass-panel p-6 shadow-md border border-stone-200 flex flex-wrap justify-between items-center gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-stone-950 font-serif">
-                  Timetable Editor & Exports
+                <h2 className="text-xl font-bold text-stone-950 font-serif">
+                  A4 Landscape Live Editor & Exports
                 </h2>
                 <p className="text-stone-500 text-xs mt-0.5">
-                  Double-click or edit values inside any cell below to customize the output manually.
+                  Click on any text (headings, class names, subjects, or time headers) inside the A4 layout below to modify them instantly.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2.5">
                 <button
                   onClick={handleDownloadJPG}
-                  className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-sm"
+                  className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-4 py-2.5 rounded-lg text-xs transition-all shadow-sm"
                 >
                   Download JPG
                 </button>
                 <button
                   onClick={handleDownloadPDF}
-                  className="bg-stone-900 hover:bg-stone-850 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-sm"
+                  className="bg-stone-900 hover:bg-stone-850 text-white font-bold px-4 py-2.5 rounded-lg text-xs transition-all shadow-sm"
                 >
                   Download PDF
                 </button>
                 <button
                   onClick={handlePrint}
-                  className="border border-stone-400 hover:border-stone-950 hover:bg-stone-50 text-stone-700 hover:text-stone-950 font-bold px-4 py-2 rounded-lg text-xs transition-all"
+                  className="border border-stone-400 hover:border-stone-950 hover:bg-stone-50 text-stone-700 hover:text-stone-950 font-bold px-4 py-2.5 rounded-lg text-xs transition-all"
                 >
                   Print View
                 </button>
               </div>
             </div>
 
-            {/* Editable Control Panel */}
-            <div className="bg-stone-50 border border-stone-200 p-4 rounded-xl flex flex-wrap gap-3 items-center text-xs">
-              <span className="font-bold text-stone-850 uppercase tracking-wider">Manual Editor Utilities:</span>
+            <div className="glass-panel p-4 border border-stone-200 flex flex-wrap gap-3 items-center text-xs">
+              <span className="font-bold text-stone-800 uppercase tracking-wider">Layout Controls:</span>
               <button
                 onClick={handleAddClassRow}
                 className="bg-white border border-stone-300 hover:border-amber-500 text-stone-700 hover:text-stone-900 px-3 py-1.5 rounded transition-all font-semibold"
@@ -1101,237 +1072,195 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Timetable Interactive Grid */}
-            <div className="overflow-x-auto border border-stone-300 rounded-xl shadow-sm bg-white">
-              <table className="min-w-full border-collapse">
-                <thead>
-                  <tr className="bg-stone-900 text-white text-xs border-b border-stone-300">
-                    <th className="border-r border-stone-700 p-3 text-left w-36 font-semibold">
-                      Class
-                    </th>
-                    {timeSlots.map((slot, index) => (
-                      <th key={index} className="border-r border-stone-700 p-3 text-center min-w-32 relative group">
-                        <input
-                          type="text"
-                          value={slot}
-                          onChange={(e) => handleSlotNameChange(index, e.target.value)}
-                          className="bg-transparent text-center border-none focus:outline-none focus:bg-stone-800 text-white font-bold w-full"
-                        />
-                        <button
-                          onClick={() => handleRemoveTimeSlot(index)}
-                          className="absolute -top-1 -right-1 hidden group-hover:block bg-red-600 text-white w-4 h-4 rounded-full text-3xs font-extrabold"
-                          title="Remove Column"
-                        >
-                          ✕
-                        </button>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {classes.map((cls) => (
-                    <tr key={cls.id} className="border-b border-stone-300 hover:bg-stone-50/50 text-xs">
-                      {/* Class Name Cell */}
-                      <td className="border-r border-stone-300 p-3 font-bold text-stone-950 flex items-center justify-between group">
-                        <input
-                          type="text"
-                          value={cls.name}
-                          onChange={(e) => handleClassNameChange(cls.id, e.target.value)}
-                          className="bg-transparent font-bold border-none focus:outline-none focus:ring-1 focus:ring-amber-500 rounded px-1 w-24"
-                        />
-                        <button
-                          onClick={() => handleRemoveClassRow(cls.id)}
-                          className="hidden group-hover:block text-red-500 hover:text-red-700 font-bold ml-1"
-                          title="Remove Row"
-                        >
-                          ✕
-                        </button>
-                      </td>
-
-                      {/* Timetable Slots Data Cells */}
-                      {timeSlots.map((slot, slotIdx) => {
-                        const cell = timetable[cls.id]?.[slot] || { subject: "-", teacher: "-", isTest: false };
-                        return (
-                          <td
-                            key={slotIdx}
-                            className={`border-r border-stone-300 p-2.5 text-center min-w-32 align-middle relative group transition-all ${
-                              cell.isTest ? "bg-amber-50/70" : ""
-                            }`}
-                          >
-                            {cell.isTest ? (
-                              <div className="flex flex-col items-center justify-center py-1">
-                                <span className="font-extrabold uppercase tracking-widest text-amber-800 underline text-sm">
-                                  TEST
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col gap-1">
-                                <input
-                                  type="text"
-                                  value={cell.subject}
-                                  onChange={(e) => handleCellEdit(cls.id, slot, "subject", e.target.value)}
-                                  className="text-center font-bold text-stone-900 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 rounded w-full"
-                                  placeholder="Subject"
-                                />
-                                <input
-                                  type="text"
-                                  value={cell.teacher}
-                                  onChange={(e) => handleCellEdit(cls.id, slot, "teacher", e.target.value)}
-                                  className="text-center text-stone-600 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 rounded w-full"
-                                  placeholder="Teacher"
-                                />
-                              </div>
-                            )}
-
-                            {/* Quick tools menu for cell */}
-                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1 transition-all bg-white/95 px-1 py-0.5 rounded shadow-sm border border-stone-200">
-                              <button
-                                onClick={() => toggleTestCell(cls.id, slot)}
-                                className={`px-1 rounded text-3xs font-bold ${
-                                  cell.isTest
-                                    ? "bg-stone-200 text-stone-800"
-                                    : "bg-amber-500 text-stone-950"
-                                }`}
-                                title="Toggle TEST"
-                              >
-                                T
-                              </button>
-                              <button
-                                onClick={() => handleClearCell(cls.id, slot)}
-                                className="bg-red-500 hover:bg-red-600 text-white px-1 rounded text-3xs font-bold"
-                                title="Clear Cell"
-                              >
-                                C
-                              </button>
+            {/* PREVIEW CONTAINER - FULL REAL WYSIWYG A4 PAGE */}
+            <div className="flex justify-center overflow-x-auto py-6 bg-stone-250 border border-stone-300 rounded-xl shadow-inner">
+              <div className="shadow-2xl border border-stone-300 bg-white p-1">
+                {/* Printable Canvas Ref */}
+                <div
+                  ref={previewRef}
+                  className="a4-landscape-page"
+                  style={{
+                    fontFamily: "'Playfair Display', serif"
+                  }}
+                >
+                  {/* Double Black Border Frame */}
+                  <div className="timetable-border">
+                    {/* Header: Logo & Titles */}
+                    <div className="flex items-center justify-between border-b-2 border-stone-950 pb-4 mb-4">
+                      {/* Logo Top Left */}
+                      <div className="w-20 h-20 flex items-center justify-start">
+                        {logo ? (
+                          <img src={logo} alt="Crest Logo" className="max-h-full max-w-full object-contain" />
+                        ) : (
+                          <div className="w-16 h-16 border-2 border-stone-950 rounded-full flex flex-col items-center justify-center text-center p-1 bg-white">
+                            <div className="border border-stone-950 rounded-full w-full h-full flex flex-col items-center justify-center">
+                              <span className="text-3xs font-bold leading-none">LEAPS</span>
+                              <span className="text-4xs font-serif leading-none mt-0.5">ACADEMY</span>
                             </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Main Title Center */}
+                      <div className="text-center flex-grow">
+                        <input
+                          type="text"
+                          value={academyName}
+                          onChange={(e) => {
+                            setAcademyName(e.target.value);
+                            saveData({ academyName: e.target.value });
+                          }}
+                          className="w-full bg-transparent text-center font-black uppercase tracking-widest text-stone-950 text-2xl border-none focus:outline-none focus:ring-1 focus:ring-amber-500 rounded font-serif py-0.5"
+                        />
+                        <input
+                          type="text"
+                          value={headingText}
+                          onChange={(e) => {
+                            setHeadingText(e.target.value);
+                            saveData({ headingText: e.target.value });
+                          }}
+                          className="w-full bg-transparent text-center font-bold tracking-widest text-stone-850 text-lg border-none focus:outline-none focus:ring-1 focus:ring-amber-500 rounded uppercase py-0.5 mt-1"
+                        />
+                      </div>
+
+                      {/* Layout spacer for balanced centering */}
+                      <div className="w-20"></div>
+                    </div>
+
+                    {/* Central Timetable Data Grid */}
+                    <div className="flex-grow flex items-center justify-center w-full py-2">
+                      <table
+                        className="w-full border-collapse border-4 border-stone-950 bg-white"
+                        style={{ tableLayout: "fixed" }}
+                      >
+                        <thead>
+                          <tr className="bg-stone-50 border-b-4 border-stone-950 text-2xs">
+                            <th className="border-r-4 border-stone-950 p-2.5 text-center font-serif font-black text-xs uppercase w-32">
+                              Class / Time
+                            </th>
+                            {timeSlots.map((slot, index) => (
+                              <th
+                                key={index}
+                                className="border-r-4 border-stone-950 p-2 text-center font-bold text-xs uppercase font-serif w-32 relative group"
+                              >
+                                <input
+                                  type="text"
+                                  value={slot}
+                                  onChange={(e) => handleSlotNameChange(index, e.target.value)}
+                                  className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold w-full"
+                                />
+                                <button
+                                  onClick={() => handleRemoveTimeSlot(index)}
+                                  className="absolute -top-1 -right-1 hidden group-hover:block bg-red-650 text-white w-4 h-4 rounded-full text-3xs font-extrabold no-print shadow"
+                                  title="Remove Column"
+                                >
+                                  ✕
+                                </button>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {classes.map((cls) => (
+                            <tr key={cls.id} className="border-b-4 border-stone-950 text-center text-2xs font-serif">
+                              <td className="border-r-4 border-stone-950 p-3 font-serif font-black text-sm text-stone-950 bg-stone-50 text-center uppercase relative group">
+                                <input
+                                  type="text"
+                                  value={cls.name}
+                                  onChange={(e) => handleClassNameChange(cls.id, e.target.value)}
+                                  className="bg-transparent text-center font-black border-none focus:outline-none focus:ring-1 focus:ring-amber-500 w-full"
+                                />
+                                <button
+                                  onClick={() => handleRemoveClassRow(cls.id)}
+                                  className="absolute top-1 right-1 hidden group-hover:block text-red-600 font-bold text-xs no-print"
+                                  title="Remove Row"
+                                >
+                                  ✕
+                                </button>
+                              </td>
+                              {timeSlots.map((slot, index) => {
+                                const cell = timetable[cls.id]?.[slot] || { subject: "-", teacher: "-", isTest: false };
+                                return (
+                                  <td
+                                    key={index}
+                                    className="border-r-4 border-stone-950 p-2 align-middle bg-white text-stone-950 relative group"
+                                  >
+                                    {cell.isTest ? (
+                                      <div className="py-2.5">
+                                        <span className="font-extrabold text-sm underline tracking-wider uppercase block text-center select-none text-stone-950">
+                                          TEST
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        <input
+                                          type="text"
+                                          value={cell.subject}
+                                          onChange={(e) => handleCellEdit(cls.id, slot, "subject", e.target.value)}
+                                          className="text-center font-black text-xs text-stone-950 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0"
+                                          placeholder="Subject"
+                                        />
+                                        <input
+                                          type="text"
+                                          value={cell.teacher}
+                                          onChange={(e) => handleCellEdit(cls.id, slot, "teacher", e.target.value)}
+                                          className="text-center text-3xs italic text-stone-700 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0"
+                                          placeholder="Teacher"
+                                        />
+                                      </div>
+                                    )}
+
+                                    {/* Action Hover Badges */}
+                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1 transition-all bg-white/95 px-1 py-0.5 rounded shadow-sm border border-stone-200 no-print">
+                                      <button
+                                        onClick={() => toggleTestCell(cls.id, slot)}
+                                        className={`px-1 rounded text-3xs font-bold ${
+                                          cell.isTest
+                                            ? "bg-stone-200 text-stone-850"
+                                            : "bg-amber-500 text-stone-950"
+                                        }`}
+                                        title="Toggle TEST"
+                                      >
+                                        T
+                                      </button>
+                                      <button
+                                        onClick={() => handleClearCell(cls.id, slot)}
+                                        className="bg-red-500 hover:bg-red-650 text-white px-1 rounded text-3xs font-bold"
+                                        title="Clear Cell"
+                                      >
+                                        C
+                                      </button>
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Footer Code */}
+                    <div className="flex justify-between items-center text-3xs font-bold text-stone-850 mt-4 border-t-2 border-stone-950 pt-2 font-serif">
+                      <input
+                        type="text"
+                        value={footerText}
+                        onChange={(e) => {
+                          setFooterText(e.target.value);
+                          saveData({ footerText: e.target.value });
+                        }}
+                        className="bg-transparent font-bold border-none focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-850"
+                        placeholder="LA25092025 V 1.1"
+                      />
+                      <span className="italic">LEAPS Academy Time Table Maker v1.1</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
       </main>
-
-      {/* --- STEP 6: PRINT DESIGN WORKSPACE PREVIEW --- */}
-      <section className="bg-stone-200 py-12 px-4 no-print flex flex-col items-center border-t border-stone-300">
-        <h3 className="text-lg font-bold text-stone-900 mb-6 font-serif tracking-wider uppercase">
-          Live A4 Landscape Print Replica
-        </h3>
-
-        {/* Outer A4 Card Border Container */}
-        <div className="shadow-2xl border-4 border-stone-400 bg-stone-50 rounded p-1 max-w-full overflow-auto">
-          {/* Replica Canvas element used for JPG/PDF exports */}
-          <div
-            ref={previewRef}
-            className="a4-landscape-page"
-            style={{
-              fontFamily: "'Playfair Display', serif"
-            }}
-          >
-            {/* Double Black Border Frame */}
-            <div className="timetable-border">
-              {/* Header section */}
-              <div className="flex items-center justify-between border-b-2 border-stone-950 pb-4 mb-4">
-                {/* Logo section */}
-                <div className="w-20 h-20 flex items-center justify-start">
-                  {logo ? (
-                    <img src={logo} alt="Crest Logo" className="max-h-full max-w-full object-contain" />
-                  ) : (
-                    // Default Elegant Academic Crest Symbol
-                    <div className="w-16 h-16 border-2 border-stone-950 rounded-full flex flex-col items-center justify-center text-center p-1 bg-white">
-                      <div className="border border-stone-950 rounded-full w-full h-full flex flex-col items-center justify-center">
-                        <span className="text-3xs font-bold leading-none">LEAPS</span>
-                        <span className="text-4xs font-serif leading-none mt-0.5">ACADEMY</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Main Heading Text */}
-                <div className="text-center flex-grow">
-                  <h1 className="text-2xl font-black uppercase tracking-widest text-stone-950 font-serif">
-                    {academyName}
-                  </h1>
-                  <h2 className="text-lg font-bold tracking-widest text-stone-850 mt-1 uppercase">
-                    {headingText}
-                  </h2>
-                </div>
-
-                {/* Right empty spacer for perfect layout alignment */}
-                <div className="w-20"></div>
-              </div>
-
-              {/* Central Timetable Data Grid */}
-              <div className="flex-grow flex items-center justify-center w-full py-2">
-                <table className="w-full border-collapse border-4 border-stone-950 bg-white">
-                  <thead>
-                    <tr className="bg-stone-100 text-stone-950 text-2xs border-b-3 border-stone-950">
-                      <th className="border-r-3 border-stone-950 p-2.5 text-left font-serif font-black text-xs uppercase w-32">
-                        Classes
-                      </th>
-                      {timeSlots.map((slot, index) => (
-                        <th
-                          key={index}
-                          className="border-r-3 border-stone-950 p-2 text-center font-bold text-xs uppercase tracking-wider font-serif"
-                        >
-                          {slot}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {classes.map((cls) => (
-                      <tr key={cls.id} className="border-b-3 border-stone-950 text-center text-2xs font-serif">
-                        <td className="border-r-3 border-stone-950 p-3 font-serif font-black text-sm text-stone-950 bg-stone-50 text-left uppercase">
-                          {cls.name}
-                        </td>
-                        {timeSlots.map((slot, index) => {
-                          const cell = timetable[cls.id]?.[slot] || { subject: "-", teacher: "-", isTest: false };
-                          return (
-                            <td
-                              key={index}
-                              className="border-r-3 border-stone-950 p-2.5 align-middle bg-white text-stone-950"
-                            >
-                              {cell.isTest ? (
-                                <div className="py-2.5">
-                                  <span className="font-extrabold text-sm underline tracking-wider uppercase block text-center">
-                                    TEST
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="space-y-0.5">
-                                  <span className="font-black text-xs block text-stone-950 leading-tight">
-                                    {cell.subject}
-                                  </span>
-                                  {cell.teacher && (
-                                    <span className="text-3xs italic text-stone-700 block leading-none">
-                                      {cell.teacher}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Timetable Footer Version Code */}
-              <div className="flex justify-between items-center text-3xs font-bold text-stone-850 mt-4 border-t-2 border-stone-950 pt-2 font-serif">
-                <span>{footerText}</span>
-                <span className="italic">LEAPS Academy Time Table Maker v1.1</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* --- HIDDEN ABSOLUTE PRINT CONTAINER (ONLY VISIBLE ON PRINT EVENT) --- */}
       <div className="hidden print:block absolute top-0 left-0 bg-white">
@@ -1368,11 +1297,14 @@ export default function Home() {
             </div>
 
             <div className="flex-grow flex items-center justify-center w-full py-2">
-              <table className="w-full border-collapse border-4 border-stone-950 bg-white">
+              <table
+                className="w-full border-collapse border-4 border-stone-950 bg-white"
+                style={{ tableLayout: "fixed" }}
+              >
                 <thead>
                   <tr className="bg-stone-100 text-stone-950 text-2xs border-b-3 border-stone-950">
-                    <th className="border-r-3 border-stone-950 p-2.5 text-left font-serif font-black text-xs uppercase w-32">
-                      Classes
+                    <th className="border-r-3 border-stone-950 p-2.5 text-center font-serif font-black text-xs uppercase w-32">
+                      Class / Time
                     </th>
                     {timeSlots.map((slot, index) => (
                       <th
@@ -1387,7 +1319,7 @@ export default function Home() {
                 <tbody>
                   {classes.map((cls) => (
                     <tr key={cls.id} className="border-b-3 border-stone-950 text-center text-2xs font-serif">
-                      <td className="border-r-3 border-stone-950 p-3 font-serif font-black text-sm text-stone-950 bg-stone-50 text-left uppercase">
+                      <td className="border-r-3 border-stone-950 p-3 font-serif font-black text-sm text-stone-950 bg-stone-50 text-center uppercase">
                         {cls.name}
                       </td>
                       {timeSlots.map((slot, index) => {
