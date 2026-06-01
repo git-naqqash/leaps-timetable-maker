@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Cinzel:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 
 :root {
   --background: #faf9f6;
@@ -27,30 +27,100 @@ body {
   border-radius: 16px;
 }
 
-/* A4 Landscape Print View */
-.a4-landscape-page {
+/* --- EXACT A4 LANDSCAPE PRINT RULES --- */
+.page {
   width: 297mm;
   height: 210mm;
-  padding: 15mm;
+  padding: 8mm 10mm;
   box-sizing: border-box;
-  background-color: #ffffff !important;
-  color: #000000 !important;
+  background: white;
+  border: 4px double #111;
+  overflow: hidden;
   position: relative;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 120px 1fr 120px;
+  align-items: center;
+  margin-bottom: 6mm;
+  min-height: 25mm;
+}
+
+.logo {
+  max-width: 75px;
+  max-height: 45px;
+  object-fit: contain;
+}
+
+.heading-area h1 {
+  font-size: 26px;
+  letter-spacing: 6px;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.heading-area h2 {
+  font-size: 18px;
+  letter-spacing: 4px;
+  margin: 0;
+  text-align: center;
+}
+
+.content-area {
+  height: calc(210mm - 8mm - 8mm - 30mm - 14mm);
   overflow: hidden;
 }
 
-.timetable-border {
-  border: 4px double #000000;
-  height: 100%;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  box-sizing: border-box;
-  background: #ffffff;
+.timetable-wrapper {
+  width: 100%;
+  overflow: hidden;
 }
 
-/* Print CSS */
+.timetable-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.class-col {
+  width: 28mm;
+}
+
+.timetable-table th {
+  font-size: 12px;
+  padding: 4px 2px;
+  line-height: 1.1;
+  white-space: nowrap;
+  border: 1.5px solid #111;
+  background: #fcfbf9;
+}
+
+.timetable-table td {
+  font-size: 12px;
+  padding: 4px 2px;
+  line-height: 1.15;
+  text-align: center;
+  vertical-align: middle;
+  height: 18mm;
+  overflow: hidden;
+  word-break: break-word;
+  border: 1.5px solid #111;
+}
+
+.footer {
+  position: absolute;
+  left: 10mm;
+  right: 10mm;
+  bottom: 6mm;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Print CSS override */
 @media print {
   body {
     background: none !important;
@@ -66,20 +136,15 @@ body {
     display: none !important;
   }
   
-  .print-page-break {
-    page-break-before: always;
-  }
-  
-  .a4-landscape-page {
+  .page {
     width: 297mm;
     height: 210mm;
     margin: 0 !important;
-    border: none !important;
+    border: 4px double #111 !important;
     box-shadow: none !important;
     page-break-inside: avoid;
   }
 
-  /* Make sure the page matches exact landscape size in browser print options */
   @page {
     size: A4 landscape;
     margin: 0;

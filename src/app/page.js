@@ -45,9 +45,8 @@ export default function Home() {
   ]);
 
   // Step 4 & 5: Timetable Data
-  // Format: { [classId]: { [slotKey]: { subject: "...", teacher: "...", isTest: false } } }
   const [timetable, setTimetable] = useState({});
-  const [timeSlots, setTimeSlots] = useState([]); // List of unique slot strings
+  const [timeSlots, setTimeSlots] = useState([]);
 
   const previewRef = useRef(null);
 
@@ -152,7 +151,6 @@ export default function Home() {
     return `${displayH}:${displayM} ${period}`;
   };
 
-  // Generate 30-min interval strings, e.g. "4:00 PM - 4:30 PM"
   const generateSlotsForClass = (classItem) => {
     const startM = parseTimeToMinutes(classItem.startTime);
     const endM = parseTimeToMinutes(classItem.endTime);
@@ -233,7 +231,7 @@ export default function Home() {
 
     classes.forEach((c) => {
       const activeSlots = classSlotsMap[c.id];
-      activeSlots.forEach((slot, index) => {
+      activeSlots.forEach((slot) => {
         const candidateTeachers = teachers.filter((t) => {
           const teachesThisClass = t.allowedClasses.includes(c.name);
           const availableInTime = isTeacherAvailableForSlot(t, slot);
@@ -391,7 +389,6 @@ export default function Home() {
     if (!previewRef.current) return;
     const element = previewRef.current;
     
-    // Lock dimensions during export so html2canvas renders exact A4
     const originalStyle = element.getAttribute("style");
     element.style.width = "297mm";
     element.style.height = "210mm";
@@ -479,7 +476,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Navigation tabs */}
           <nav className="flex flex-wrap gap-2">
             {[
               { id: "academy", label: "Academy Setup" },
@@ -494,7 +490,7 @@ export default function Home() {
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                   activeTab === tab.id
                     ? "bg-amber-500 text-stone-950 shadow-md transform -translate-y-0.5"
-                    : "text-stone-300 hover:bg-stone-800 hover:text-white"
+                    : "text-stone-300 hover:bg-stone-880 hover:text-white"
                 }`}
               >
                 {tab.label}
@@ -723,7 +719,7 @@ export default function Home() {
                         setClasses(updated);
                         saveData({ classes: updated });
                       }}
-                      className="text-red-500 hover:text-red-600 p-2 hover:bg-red-50 rounded transition-all text-sm font-semibold"
+                      className="text-red-500 hover:text-red-650 p-2 hover:bg-red-50 rounded transition-all text-sm font-semibold"
                       title="Delete Class"
                     >
                       Delete
@@ -1030,7 +1026,7 @@ export default function Home() {
                   A4 Landscape Live Editor & Exports
                 </h2>
                 <p className="text-stone-500 text-xs mt-0.5">
-                  Click on any text (headings, class names, subjects, or time headers) inside the A4 layout below to modify them instantly.
+                  Click on any text (headings, class names, timeslot column headers, subjects, or teacher names) inside the A4 layout below to modify them instantly.
                 </p>
               </div>
 
@@ -1073,36 +1069,35 @@ export default function Home() {
             </div>
 
             {/* PREVIEW CONTAINER - FULL REAL WYSIWYG A4 PAGE */}
-            <div className="flex justify-center overflow-x-auto py-6 bg-stone-250 border border-stone-300 rounded-xl shadow-inner">
+            <div className="flex justify-center overflow-x-auto py-6 bg-stone-200 border border-stone-300 rounded-xl shadow-inner">
               <div className="shadow-2xl border border-stone-300 bg-white p-1">
                 {/* Printable Canvas Ref */}
                 <div
                   ref={previewRef}
-                  className="a4-landscape-page"
+                  className="page"
                   style={{
                     fontFamily: "'Playfair Display', serif"
                   }}
                 >
-                  {/* Double Black Border Frame */}
-                  <div className="timetable-border">
-                    {/* Header: Logo & Titles */}
-                    <div className="flex items-center justify-between border-b-2 border-stone-950 pb-4 mb-4">
-                      {/* Logo Top Left */}
-                      <div className="w-20 h-20 flex items-center justify-start">
-                        {logo ? (
-                          <img src={logo} alt="Crest Logo" className="max-h-full max-w-full object-contain" />
-                        ) : (
-                          <div className="w-16 h-16 border-2 border-stone-950 rounded-full flex flex-col items-center justify-center text-center p-1 bg-white">
-                            <div className="border border-stone-950 rounded-full w-full h-full flex flex-col items-center justify-center">
-                              <span className="text-3xs font-bold leading-none">LEAPS</span>
-                              <span className="text-4xs font-serif leading-none mt-0.5">ACADEMY</span>
-                            </div>
+                  {/* Compact Header: Logo & Titles */}
+                  <div className="header">
+                    {/* Logo Top Left */}
+                    <div className="flex items-center justify-start">
+                      {logo ? (
+                        <img src={logo} alt="Crest Logo" className="logo" />
+                      ) : (
+                        <div className="w-14 h-14 border border-stone-950 rounded-full flex flex-col items-center justify-center text-center p-0.5 bg-white">
+                          <div className="border border-stone-950 rounded-full w-full h-full flex flex-col items-center justify-center">
+                            <span className="text-4xs font-bold leading-none">LEAPS</span>
+                            <span className="text-5xs font-serif leading-none mt-0.5">ACADEMY</span>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                    </div>
 
-                      {/* Main Title Center */}
-                      <div className="text-center flex-grow">
+                    {/* Centered Main Title Heading Area */}
+                    <div className="heading-area">
+                      <h1>
                         <input
                           type="text"
                           value={academyName}
@@ -1110,8 +1105,10 @@ export default function Home() {
                             setAcademyName(e.target.value);
                             saveData({ academyName: e.target.value });
                           }}
-                          className="w-full bg-transparent text-center font-black uppercase tracking-widest text-stone-950 text-2xl border-none focus:outline-none focus:ring-1 focus:ring-amber-500 rounded font-serif py-0.5"
+                          className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-serif font-black uppercase text-stone-950 w-full"
                         />
+                      </h1>
+                      <h2>
                         <input
                           type="text"
                           value={headingText}
@@ -1119,29 +1116,28 @@ export default function Home() {
                             setHeadingText(e.target.value);
                             saveData({ headingText: e.target.value });
                           }}
-                          className="w-full bg-transparent text-center font-bold tracking-widest text-stone-850 text-lg border-none focus:outline-none focus:ring-1 focus:ring-amber-500 rounded uppercase py-0.5 mt-1"
+                          className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-serif font-bold uppercase text-stone-850 w-full"
                         />
-                      </div>
-
-                      {/* Layout spacer for balanced centering */}
-                      <div className="w-20"></div>
+                      </h2>
                     </div>
 
-                    {/* Central Timetable Data Grid */}
-                    <div className="flex-grow flex items-center justify-center w-full py-2">
-                      <table
-                        className="w-full border-collapse border-4 border-stone-950 bg-white"
-                        style={{ tableLayout: "fixed" }}
-                      >
+                    <div className="w-20"></div>
+                  </div>
+
+                  {/* Horizontal line divider */}
+                  <div className="border-t border-stone-950 mb-3"></div>
+
+                  {/* Central Timetable Data Grid */}
+                  <div className="content-area">
+                    <div className="timetable-wrapper">
+                      <table className="timetable-table">
                         <thead>
-                          <tr className="bg-stone-50 border-b-4 border-stone-950 text-2xs">
-                            <th className="border-r-4 border-stone-950 p-2.5 text-center font-serif font-black text-xs uppercase w-32">
-                              Class / Time
-                            </th>
+                          <tr>
+                            <th className="class-col">Class / Time</th>
                             {timeSlots.map((slot, index) => (
                               <th
                                 key={index}
-                                className="border-r-4 border-stone-950 p-2 text-center font-bold text-xs uppercase font-serif w-32 relative group"
+                                className="relative group"
                               >
                                 <input
                                   type="text"
@@ -1151,7 +1147,7 @@ export default function Home() {
                                 />
                                 <button
                                   onClick={() => handleRemoveTimeSlot(index)}
-                                  className="absolute -top-1 -right-1 hidden group-hover:block bg-red-650 text-white w-4 h-4 rounded-full text-3xs font-extrabold no-print shadow"
+                                  className="absolute -top-1 -right-1 hidden group-hover:block bg-red-600 text-white w-4 h-4 rounded-full text-3xs font-extrabold no-print shadow"
                                   title="Remove Column"
                                 >
                                   ✕
@@ -1162,8 +1158,8 @@ export default function Home() {
                         </thead>
                         <tbody>
                           {classes.map((cls) => (
-                            <tr key={cls.id} className="border-b-4 border-stone-950 text-center text-2xs font-serif">
-                              <td className="border-r-4 border-stone-950 p-3 font-serif font-black text-sm text-stone-950 bg-stone-50 text-center uppercase relative group">
+                            <tr key={cls.id}>
+                              <td className="font-bold relative group bg-stone-50">
                                 <input
                                   type="text"
                                   value={cls.name}
@@ -1172,7 +1168,7 @@ export default function Home() {
                                 />
                                 <button
                                   onClick={() => handleRemoveClassRow(cls.id)}
-                                  className="absolute top-1 right-1 hidden group-hover:block text-red-600 font-bold text-xs no-print"
+                                  className="absolute top-1 right-1 hidden group-hover:block text-red-650 font-bold text-xs no-print"
                                   title="Remove Row"
                                 >
                                   ✕
@@ -1183,21 +1179,21 @@ export default function Home() {
                                 return (
                                   <td
                                     key={index}
-                                    className="border-r-4 border-stone-950 p-2 align-middle bg-white text-stone-950 relative group"
+                                    className="relative group bg-white text-stone-950"
                                   >
                                     {cell.isTest ? (
-                                      <div className="py-2.5">
-                                        <span className="font-extrabold text-sm underline tracking-wider uppercase block text-center select-none text-stone-950">
+                                      <div className="py-1">
+                                        <span className="font-extrabold text-xs underline uppercase block text-center select-none text-stone-950">
                                           TEST
                                         </span>
                                       </div>
                                     ) : (
-                                      <div className="space-y-1">
+                                      <div className="space-y-0.5">
                                         <input
                                           type="text"
                                           value={cell.subject}
                                           onChange={(e) => handleCellEdit(cls.id, slot, "subject", e.target.value)}
-                                          className="text-center font-black text-xs text-stone-950 border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0"
+                                          className="text-center font-black border-none bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0"
                                           placeholder="Subject"
                                         />
                                         <input
@@ -1211,10 +1207,10 @@ export default function Home() {
                                     )}
 
                                     {/* Action Hover Badges */}
-                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1 transition-all bg-white/95 px-1 py-0.5 rounded shadow-sm border border-stone-200 no-print">
+                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-0.5 transition-all bg-white/95 px-0.5 py-0.5 rounded shadow border border-stone-200 no-print">
                                       <button
                                         onClick={() => toggleTestCell(cls.id, slot)}
-                                        className={`px-1 rounded text-3xs font-bold ${
+                                        className={`px-0.5 rounded text-3xs font-bold ${
                                           cell.isTest
                                             ? "bg-stone-200 text-stone-850"
                                             : "bg-amber-500 text-stone-950"
@@ -1225,7 +1221,7 @@ export default function Home() {
                                       </button>
                                       <button
                                         onClick={() => handleClearCell(cls.id, slot)}
-                                        className="bg-red-500 hover:bg-red-650 text-white px-1 rounded text-3xs font-bold"
+                                        className="bg-red-500 hover:bg-red-650 text-white px-0.5 rounded text-3xs font-bold"
                                         title="Clear Cell"
                                       >
                                         C
@@ -1239,9 +1235,11 @@ export default function Home() {
                         </tbody>
                       </table>
                     </div>
+                  </div>
 
-                    {/* Footer Code */}
-                    <div className="flex justify-between items-center text-3xs font-bold text-stone-850 mt-4 border-t-2 border-stone-950 pt-2 font-serif">
+                  {/* Absolute Footer spacing */}
+                  <div className="footer">
+                    <div>
                       <input
                         type="text"
                         value={footerText}
@@ -1249,11 +1247,11 @@ export default function Home() {
                           setFooterText(e.target.value);
                           saveData({ footerText: e.target.value });
                         }}
-                        className="bg-transparent font-bold border-none focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-850"
+                        className="bg-transparent font-bold border-none focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-950 w-48"
                         placeholder="LA25092025 V 1.1"
                       />
-                      <span className="italic">LEAPS Academy Time Table Maker v1.1</span>
                     </div>
+                    <div className="italic text-stone-950">LEAPS Academy Time Table Maker v1.1</div>
                   </div>
                 </div>
               </div>
@@ -1265,51 +1263,44 @@ export default function Home() {
       {/* --- HIDDEN ABSOLUTE PRINT CONTAINER (ONLY VISIBLE ON PRINT EVENT) --- */}
       <div className="hidden print:block absolute top-0 left-0 bg-white">
         <div
-          className="a4-landscape-page"
+          className="page"
           style={{
             fontFamily: "'Playfair Display', serif"
           }}
         >
-          <div className="timetable-border">
-            <div className="flex items-center justify-between border-b-2 border-stone-950 pb-4 mb-4">
-              <div className="w-20 h-20 flex items-center justify-start">
-                {logo ? (
-                  <img src={logo} alt="Crest Logo" className="max-h-full max-w-full object-contain" />
-                ) : (
-                  <div className="w-16 h-16 border-2 border-stone-950 rounded-full flex flex-col items-center justify-center text-center p-1 bg-white">
-                    <div className="border border-stone-950 rounded-full w-full h-full flex flex-col items-center justify-center">
-                      <span className="text-3xs font-bold leading-none">LEAPS</span>
-                      <span className="text-4xs font-serif leading-none mt-0.5">ACADEMY</span>
-                    </div>
+          <div className="header">
+            <div className="flex items-center justify-start">
+              {logo ? (
+                <img src={logo} alt="Crest Logo" className="logo" />
+              ) : (
+                <div className="w-14 h-14 border border-stone-950 rounded-full flex flex-col items-center justify-center text-center p-0.5 bg-white">
+                  <div className="border border-stone-950 rounded-full w-full h-full flex flex-col items-center justify-center">
+                    <span className="text-4xs font-bold leading-none">LEAPS</span>
+                    <span className="text-5xs font-serif leading-none mt-0.5">ACADEMY</span>
                   </div>
-                )}
-              </div>
-
-              <div className="text-center flex-grow">
-                <h1 className="text-2xl font-black uppercase tracking-widest text-stone-950 font-serif">
-                  {academyName}
-                </h1>
-                <h2 className="text-lg font-bold tracking-widest text-stone-850 mt-1 uppercase">
-                  {headingText}
-                </h2>
-              </div>
-              <div className="w-20"></div>
+                </div>
+              )}
             </div>
 
-            <div className="flex-grow flex items-center justify-center w-full py-2">
-              <table
-                className="w-full border-collapse border-4 border-stone-950 bg-white"
-                style={{ tableLayout: "fixed" }}
-              >
+            <div className="heading-area">
+              <h1>{academyName}</h1>
+              <h2>{headingText}</h2>
+            </div>
+            <div className="w-20"></div>
+          </div>
+
+          <div className="border-t border-stone-950 mb-3"></div>
+
+          <div className="content-area">
+            <div className="timetable-wrapper">
+              <table className="timetable-table">
                 <thead>
-                  <tr className="bg-stone-100 text-stone-950 text-2xs border-b-3 border-stone-950">
-                    <th className="border-r-3 border-stone-950 p-2.5 text-center font-serif font-black text-xs uppercase w-32">
-                      Class / Time
-                    </th>
+                  <tr>
+                    <th className="class-col">Class / Time</th>
                     {timeSlots.map((slot, index) => (
                       <th
                         key={index}
-                        className="border-r-3 border-stone-950 p-2 text-center font-bold text-xs uppercase tracking-wider font-serif"
+                        className="font-bold font-serif"
                       >
                         {slot}
                       </th>
@@ -1318,8 +1309,8 @@ export default function Home() {
                 </thead>
                 <tbody>
                   {classes.map((cls) => (
-                    <tr key={cls.id} className="border-b-3 border-stone-950 text-center text-2xs font-serif">
-                      <td className="border-r-3 border-stone-950 p-3 font-serif font-black text-sm text-stone-950 bg-stone-50 text-center uppercase">
+                    <tr key={cls.id}>
+                      <td className="font-bold uppercase bg-stone-50">
                         {cls.name}
                       </td>
                       {timeSlots.map((slot, index) => {
@@ -1327,17 +1318,17 @@ export default function Home() {
                         return (
                           <td
                             key={index}
-                            className="border-r-3 border-stone-950 p-2.5 align-middle bg-white text-stone-950"
+                            className="bg-white text-stone-950"
                           >
                             {cell.isTest ? (
-                              <div className="py-2.5">
-                                <span className="font-extrabold text-sm underline tracking-wider uppercase block text-center">
+                              <div className="py-1">
+                                <span className="font-extrabold text-xs underline uppercase block text-center">
                                   TEST
                                 </span>
                               </div>
                             ) : (
                               <div className="space-y-0.5">
-                                <span className="font-black text-xs block text-stone-950 leading-tight">
+                                <span className="font-black block text-stone-950 leading-tight">
                                   {cell.subject}
                                 </span>
                                 {cell.teacher && (
@@ -1355,11 +1346,11 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+          </div>
 
-            <div className="flex justify-between items-center text-3xs font-bold text-stone-850 mt-4 border-t-2 border-stone-950 pt-2 font-serif">
-              <span>{footerText}</span>
-              <span className="italic">LEAPS Academy Time Table Maker v1.1</span>
-            </div>
+          <div className="footer">
+            <span>{footerText}</span>
+            <span className="italic">LEAPS Academy Time Table Maker v1.1</span>
           </div>
         </div>
       </div>
