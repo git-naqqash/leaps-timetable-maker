@@ -100,39 +100,37 @@ body {
   vertical-align: middle;
   box-sizing: border-box;
   padding: 4px 3px;
-  overflow: hidden;
   color: #000000 !important;
 }
 
 .export-table th {
   height: 32px;
-  font-size: 11px;
-  line-height: 1.05;
-  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.1;
   white-space: normal;
-  overflow-wrap: break-word;
-  background: #ffffff !important;
+  overflow: visible;
 }
 
 .export-table td {
   height: 62px;
   font-size: 12px;
   line-height: 1.15;
-  white-space: normal;
-  overflow-wrap: break-word;
-  background: #ffffff !important;
+  padding: 4px 3px;
+  overflow: visible;
 }
 
 .export-class-col {
-  width: 115px !important;
-  min-width: 115px !important;
-  max-width: 115px !important;
-  font-size: 18px !important;
+  width: 130px !important;
+  min-width: 130px !important;
+  max-width: 130px !important;
+  font-size: 17px !important;
   font-weight: 700;
   line-height: 1.1;
   white-space: normal;
-  overflow-wrap: normal;
+  overflow: visible !important;
   word-break: normal;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .export-subject {
@@ -141,9 +139,6 @@ body {
   font-size: 12px;
   line-height: 1.15;
   margin-bottom: 3px;
-  white-space: normal;
-  overflow-wrap: break-word;
-  color: #000000 !important;
 }
 
 .export-teacher {
@@ -151,9 +146,6 @@ body {
   font-style: italic;
   font-size: 12px;
   line-height: 1.15;
-  white-space: normal;
-  overflow-wrap: break-word;
-  color: #000000 !important;
 }
 
 .export-test-cell {
