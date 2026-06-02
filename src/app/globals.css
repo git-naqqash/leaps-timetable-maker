@@ -28,99 +28,135 @@ body {
 }
 
 /* --- EXACT A4 LANDSCAPE PRINT RULES --- */
-.page {
+.a4-page {
   width: 297mm;
   height: 210mm;
-  padding: 8mm 10mm;
-  box-sizing: border-box;
   background: white;
+  box-sizing: border-box;
+  padding: 7mm 8mm;
   border: 4px double #111;
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
+  font-family: "Times New Roman", serif;
+  color: #000000 !important;
 }
 
 .header {
+  height: 28mm;
   display: grid;
-  grid-template-columns: 120px 1fr 120px;
+  grid-template-columns: 35mm 1fr 35mm;
   align-items: center;
-  margin-bottom: 6mm;
-  min-height: 25mm;
+  border-bottom: 2px solid #111;
+  margin-bottom: 5mm;
+  color: #000000 !important;
 }
 
 .logo {
-  max-width: 75px;
-  max-height: 45px;
+  max-width: 22mm;
+  max-height: 18mm;
   object-fit: contain;
 }
 
-.heading-area h1 {
-  font-size: 26px;
-  letter-spacing: 6px;
-  margin: 0 0 8px 0;
+.heading-area {
   text-align: center;
+  color: #000000 !important;
+}
+
+.heading-area h1 {
+  margin: 0 0 5mm 0;
+  font-size: 24px;
+  letter-spacing: 5px;
+  font-weight: 700;
+  color: #000000 !important;
 }
 
 .heading-area h2 {
+  margin: 0;
   font-size: 18px;
   letter-spacing: 4px;
-  margin: 0;
-  text-align: center;
-}
-
-.content-area {
-  height: calc(210mm - 8mm - 8mm - 30mm - 14mm);
-  overflow: hidden;
+  font-weight: 700;
+  color: #000000 !important;
 }
 
 .timetable-wrapper {
   width: 100%;
+  height: 135mm;
   overflow: hidden;
 }
 
 .timetable-table {
   width: 100%;
-  max-width: 100%;
-  table-layout: fixed;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
-.class-col {
-  width: 28mm;
+.timetable-table th,
+.timetable-table td {
+  border: 1.5px solid #111;
+  text-align: center;
+  vertical-align: middle;
+  padding: 2px;
+  overflow: hidden;
+  color: #000000 !important;
 }
 
 .timetable-table th {
-  font-size: 12px;
-  padding: 4px 2px;
-  line-height: 1.1;
+  height: 8mm;
+  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
-  border: 1.5px solid #111;
-  background: #fcfbf9;
+  background: #ffffff !important;
 }
 
 .timetable-table td {
+  height: 20mm;
   font-size: 12px;
-  padding: 4px 2px;
   line-height: 1.15;
-  text-align: center;
-  vertical-align: middle;
-  height: 18mm;
-  overflow: hidden;
-  word-break: break-word;
-  border: 1.5px solid #111;
+  background: #ffffff !important;
+}
+
+.class-col {
+  width: 24mm;
+  font-size: 15px !important;
+  font-weight: 700;
+}
+
+.subject {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  color: #000000 !important;
+}
+
+.teacher {
+  display: block;
+  font-style: italic;
+  font-size: 13px;
+  margin-top: 3px;
+  color: #000000 !important;
+}
+
+.test-cell {
+  font-size: 22px;
+  font-weight: 700;
+  text-decoration: underline;
+  color: #000000 !important;
 }
 
 .footer {
   position: absolute;
-  left: 10mm;
-  right: 10mm;
+  left: 8mm;
+  right: 8mm;
   bottom: 6mm;
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
-  font-weight: bold;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #000000 !important;
 }
 
-/* Print CSS override */
+/* Print override */
 @media print {
   body {
     background: none !important;
@@ -136,7 +172,7 @@ body {
     display: none !important;
   }
   
-  .page {
+  .a4-page {
     width: 297mm;
     height: 210mm;
     margin: 0 !important;
