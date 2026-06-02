@@ -7,6 +7,7 @@ import { jsPDF } from "jspdf";
 export default function Home() {
   // --- STATE DECLARATIONS ---
   const [activeTab, setActiveTab] = useState("academy");
+  const [error, setError] = useState("");
 
   // Step 1: Academy
   const [academyName, setAcademyName] = useState("LEAPS Academy");
@@ -45,48 +46,69 @@ export default function Home() {
   ]);
 
   // Step 4 & 5: Timetable Data
-  const [timetable, setTimetable] = useState({});
+  // Structured exactly as: { timeSlots: [...], rows: [ { classId: "...", className: "...", cells: [ { subject: "...", teacher: "...", type: "..." } ] } ] }
+  const [timetable, setTimetable] = useState({ timeSlots: [], rows: [] });
   const [timeSlots, setTimeSlots] = useState([]);
+
+  const previewRef = useRef(null);
 
   // --- LOCALSTORAGE PERSISTENCE ---
   useEffect(() => {
-    const savedAcademyName = localStorage.getItem("leaps_academy_name");
-    const savedHeadingText = localStorage.getItem("leaps_heading_text");
-    const savedLogo = localStorage.getItem("leaps_logo");
-    const savedFooterText = localStorage.getItem("leaps_footer_text");
-    const savedClasses = localStorage.getItem("leaps_classes");
-    const savedTeachers = localStorage.getItem("leaps_teachers");
-    const savedTimetable = localStorage.getItem("leaps_timetable");
-    const savedTimeSlots = localStorage.getItem("leaps_time_slots");
+    try {
+      const savedAcademyName = localStorage.getItem("leaps_academy_name");
+      const savedHeadingText = localStorage.getItem("leaps_heading_text");
+      const savedLogo = localStorage.getItem("leaps_logo");
+      const savedFooterText = localStorage.getItem("leaps_footer_text");
+      const savedClasses = localStorage.getItem("leaps_classes");
+      const savedTeachers = localStorage.getItem("leaps_teachers");
+      const savedTimetable = localStorage.getItem("leaps_timetable");
+      const savedTimeSlots = localStorage.getItem("leaps_time_slots");
 
-    if (savedAcademyName) setAcademyName(savedAcademyName);
-    if (savedHeadingText) setHeadingText(savedHeadingText);
-    if (savedLogo) setLogo(savedLogo);
-    if (savedFooterText) setFooterText(savedFooterText);
-    if (savedClasses) setClasses(JSON.parse(savedClasses));
-    if (savedTeachers) setTeachers(JSON.parse(savedTeachers));
-    if (savedTimetable) setTimetable(JSON.parse(savedTimetable));
-    if (savedTimeSlots) setTimeSlots(JSON.parse(savedTimeSlots));
+      if (savedAcademyName) setAcademyName(savedAcademyName);
+      if (savedHeadingText) setHeadingText(savedHeadingText);
+      if (savedLogo) setLogo(savedLogo);
+      if (savedFooterText) setFooterText(savedFooterText);
+      if (savedClasses) setClasses(JSON.parse(savedClasses));
+      if (savedTeachers) setTeachers(JSON.parse(savedTeachers));
+      
+      if (savedTimetable) {
+        const parsed = JSON.parse(savedTimetable);
+        // Safeguard format transition
+        if (parsed && Array.isArray(parsed.rows)) {
+          setTimetable(parsed);
+        } else {
+          setTimetable({ timeSlots: [], rows: [] });
+        }
+      }
+      
+      if (savedTimeSlots) setTimeSlots(JSON.parse(savedTimeSlots));
+    } catch (e) {
+      console.error("Error reading localStorage:", e);
+    }
   }, []);
 
   const saveData = (updatedData = {}) => {
-    const dAcademyName = updatedData.academyName ?? academyName;
-    const dHeading = updatedData.headingText ?? headingText;
-    const dLogo = updatedData.logo ?? logo;
-    const dFooter = updatedData.footerText ?? footerText;
-    const dClasses = updatedData.classes ?? classes;
-    const dTeachers = updatedData.teachers ?? teachers;
-    const dTimetable = updatedData.timetable ?? timetable;
-    const dTimeSlots = updatedData.timeSlots ?? timeSlots;
+    try {
+      const dAcademyName = updatedData.academyName ?? academyName;
+      const dHeading = updatedData.headingText ?? headingText;
+      const dLogo = updatedData.logo ?? logo;
+      const dFooter = updatedData.footerText ?? footerText;
+      const dClasses = updatedData.classes ?? classes;
+      const dTeachers = updatedData.teachers ?? teachers;
+      const dTimetable = updatedData.timetable ?? timetable;
+      const dTimeSlots = updatedData.timeSlots ?? timeSlots;
 
-    localStorage.setItem("leaps_academy_name", dAcademyName);
-    localStorage.setItem("leaps_heading_text", dHeading);
-    localStorage.setItem("leaps_logo", dLogo);
-    localStorage.setItem("leaps_footer_text", dFooter);
-    localStorage.setItem("leaps_classes", JSON.stringify(dClasses));
-    localStorage.setItem("leaps_teachers", JSON.stringify(dTeachers));
-    localStorage.setItem("leaps_timetable", JSON.stringify(dTimetable));
-    localStorage.setItem("leaps_time_slots", JSON.stringify(dTimeSlots));
+      localStorage.setItem("leaps_academy_name", dAcademyName);
+      localStorage.setItem("leaps_heading_text", dHeading);
+      localStorage.setItem("leaps_logo", dLogo);
+      localStorage.setItem("leaps_footer_text", dFooter);
+      localStorage.setItem("leaps_classes", JSON.stringify(dClasses));
+      localStorage.setItem("leaps_teachers", JSON.stringify(dTeachers));
+      localStorage.setItem("leaps_timetable", JSON.stringify(dTimetable));
+      localStorage.setItem("leaps_time_slots", JSON.stringify(dTimeSlots));
+    } catch (e) {
+      console.error("Error writing localStorage:", e);
+    }
   };
 
   const handleResetAll = () => {
@@ -96,6 +118,7 @@ export default function Home() {
       setHeadingText("Time Table");
       setLogo("");
       setFooterText("LA25092025 V 1.1");
+      setError("");
       
       const defaultClasses = [
         { id: "class-1", name: "9th", startTime: "16:00", endTime: "20:30" },
@@ -126,37 +149,70 @@ export default function Home() {
         }
       ];
       setTeachers(defaultTeachers);
-      setTimetable({});
+      setTimetable({ timeSlots: [], rows: [] });
       setTimeSlots([]);
       setActiveTab("academy");
       alert("All data reset successfully.");
     }
   };
 
-  // --- TIME UTILITIES ---
+  // --- SAFE TIME HELPER FUNCTIONS ---
   const parseTimeToMinutes = (timeStr) => {
-    const [h, m] = timeStr.split(":").map(Number);
-    return h * 60 + m;
+    if (!timeStr) return null;
+    try {
+      timeStr = timeStr.trim().toUpperCase();
+      // Match AM/PM representation
+      const amp = timeStr.match(/(AM|PM)/);
+      if (amp) {
+        const period = amp[1];
+        const timePart = timeStr.replace(/(AM|PM)/, "").trim();
+        const parts = timePart.split(":");
+        let h = parseInt(parts[0], 10);
+        const m = parts[1] ? parseInt(parts[1], 10) : 0;
+        if (isNaN(h) || isNaN(m)) return null;
+        if (period === "PM" && h !== 12) h += 12;
+        if (period === "AM" && h === 12) h = 0;
+        return h * 60 + m;
+      }
+      // Match HH:mm representation
+      const parts = timeStr.split(":");
+      const h = parseInt(parts[0], 10);
+      const m = parts[1] ? parseInt(parts[1], 10) : 0;
+      if (isNaN(h) || isNaN(m)) return null;
+      return h * 60 + m;
+    } catch (e) {
+      return null;
+    }
   };
 
-  const formatMinutesTo12Hour = (totalMinutes) => {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const period = hours >= 12 ? "PM" : "AM";
-    let displayH = hours % 12;
-    if (displayH === 0) displayH = 12;
-    const displayM = minutes.toString().padStart(2, "0");
-    return `${displayH}:${displayM} ${period}`;
+  const formatMinutesToTime = (minutes) => {
+    if (minutes === null || minutes === undefined || isNaN(minutes)) return "";
+    try {
+      const hours = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      const period = hours >= 12 ? "PM" : "AM";
+      let displayH = hours % 12;
+      if (displayH === 0) displayH = 12;
+      const displayM = m.toString().padStart(2, "0");
+      return `${displayH}:${displayM} ${period}`;
+    } catch (e) {
+      return "";
+    }
   };
 
-  const generateSlotsForClass = (classItem) => {
-    const startM = parseTimeToMinutes(classItem.startTime);
-    const endM = parseTimeToMinutes(classItem.endTime);
+  const generateTimeSlots = (startTime, endTime) => {
     const slots = [];
-    for (let m = startM; m < endM; m += 30) {
-      const slotStart = formatMinutesTo12Hour(m);
-      const slotEnd = formatMinutesTo12Hour(m + 30);
-      slots.push(`${slotStart}–${slotEnd}`);
+    try {
+      const startM = parseTimeToMinutes(startTime);
+      const endM = parseTimeToMinutes(endTime);
+      if (startM === null || endM === null || startM >= endM) return slots;
+      for (let m = startM; m < endM; m += 30) {
+        const slotStart = formatMinutesToTime(m);
+        const slotEnd = formatMinutesToTime(m + 30);
+        slots.push(`${slotStart}–${slotEnd}`);
+      }
+    } catch (e) {
+      console.error("generateTimeSlots error:", e);
     }
     return slots;
   };
@@ -174,215 +230,355 @@ export default function Home() {
     }
   };
 
-  // --- GENERATION ALGORITHM ---
+  // --- GENERATION ENGINE WITH SAFE VALIDATIONS ---
   const generateTimetable = () => {
-    const classSlotsMap = {};
-    const allUniqueSlotsSet = new Set();
+    setError("");
+    try {
+      const safeClasses = classes || [];
+      const safeTeachers = teachers || [];
 
-    classes.forEach((c) => {
-      const slots = generateSlotsForClass(c);
-      classSlotsMap[c.id] = slots;
-      slots.forEach((s) => allUniqueSlotsSet.add(s));
-    });
-
-    const sortedSlots = Array.from(allUniqueSlotsSet).sort((a, b) => {
-      const getTimeMinutes = (slotStr) => {
-        const timePart = slotStr.split("–")[0];
-        const [time, period] = timePart.split(" ");
-        let [h, m] = time.split(":").map(Number);
-        if (period === "PM" && h !== 12) h += 12;
-        if (period === "AM" && h === 12) h = 0;
-        return h * 60 + m;
-      };
-      return getTimeMinutes(a) - getTimeMinutes(b);
-    });
-
-    const newTimetable = {};
-    classes.forEach((c) => {
-      newTimetable[c.id] = {};
-    });
-
-    const busyTeachersPerSlot = {};
-    sortedSlots.forEach((slot) => {
-      busyTeachersPerSlot[slot] = new Set();
-    });
-
-    const isTeacherAvailableForSlot = (teacher, slotStr) => {
-      const [slotStartStr, slotEndStr] = slotStr.split("–");
-      
-      const getMin = (s) => {
-        const [time, period] = s.split(" ");
-        let [h, m] = time.split(":").map(Number);
-        if (period === "PM" && h !== 12) h += 12;
-        if (period === "AM" && h === 12) h = 0;
-        return h * 60 + m;
-      };
-
-      const slotStartMin = getMin(slotStartStr);
-      const slotEndMin = getMin(slotEndStr);
-
-      const teacherStartMin = parseTimeToMinutes(teacher.availableFrom);
-      const teacherEndMin = parseTimeToMinutes(teacher.availableTill);
-
-      return slotStartMin >= teacherStartMin && slotEndMin <= teacherEndMin;
-    };
-
-    classes.forEach((c) => {
-      const activeSlots = classSlotsMap[c.id];
-      activeSlots.forEach((slot) => {
-        const candidateTeachers = teachers.filter((t) => {
-          const teachesThisClass = t.allowedClasses.includes(c.name);
-          const availableInTime = isTeacherAvailableForSlot(t, slot);
-          const notBusy = !busyTeachersPerSlot[slot].has(t.id);
-          return teachesThisClass && availableInTime && notBusy;
-        });
-
-        if (candidateTeachers.length > 0) {
-          const chosenTeacher = candidateTeachers[Math.floor(Math.random() * candidateTeachers.length)];
-          const selectSubject = chosenTeacher.secondSubject && Math.random() > 0.5 
-            ? chosenTeacher.secondSubject 
-            : chosenTeacher.subject;
-
-          newTimetable[c.id][slot] = {
-            subject: selectSubject,
-            teacher: chosenTeacher.name,
-            isTest: false
-          };
-
-          busyTeachersPerSlot[slot].add(chosenTeacher.id);
-        } else {
-          newTimetable[c.id][slot] = {
-            subject: "-",
-            teacher: "-",
-            isTest: false
-          };
+      // 1. Validation check
+      let hasClassError = false;
+      safeClasses.forEach((c) => {
+        if (!c.name || !c.name.trim() || !c.startTime || !c.endTime) {
+          hasClassError = true;
         }
       });
-    });
 
-    setTimeSlots(sortedSlots);
-    setTimetable(newTimetable);
-    saveData({
-      timeSlots: sortedSlots,
-      timetable: newTimetable
-    });
-    setActiveTab("preview");
+      let hasTeacherError = false;
+      safeTeachers.forEach((t) => {
+        if (
+          !t.name ||
+          !t.name.trim() ||
+          !t.subject ||
+          !t.subject.trim() ||
+          !t.availableFrom ||
+          !t.availableTill ||
+          !t.allowedClasses ||
+          t.allowedClasses.length === 0
+        ) {
+          hasTeacherError = true;
+        }
+      });
+
+      if (hasClassError || hasTeacherError || safeClasses.length === 0) {
+        setError("Please complete all required fields before generating timetable.");
+        return;
+      }
+
+      // Validate time boundaries
+      for (let i = 0; i < safeClasses.length; i++) {
+        const c = safeClasses[i];
+        const start = parseTimeToMinutes(c.startTime);
+        const end = parseTimeToMinutes(c.endTime);
+        if (start === null || end === null || start >= end) {
+          setError(`Invalid start/end times for class: ${c.name}`);
+          return;
+        }
+      }
+
+      for (let i = 0; i < safeTeachers.length; i++) {
+        const t = safeTeachers[i];
+        const start = parseTimeToMinutes(t.availableFrom);
+        const end = parseTimeToMinutes(t.availableTill);
+        if (start === null || end === null || start >= end) {
+          setError(`Invalid availability times for teacher: ${t.name}`);
+          return;
+        }
+      }
+
+      // 2. Generate class slots maps
+      const classSlotsMap = {};
+      const allUniqueSlotsSet = new Set();
+
+      safeClasses.forEach((c) => {
+        const slots = generateTimeSlots(c.startTime, c.endTime);
+        classSlotsMap[c.id] = slots;
+        slots.forEach((s) => allUniqueSlotsSet.add(s));
+      });
+
+      // Sort unique slots
+      const sortedSlots = Array.from(allUniqueSlotsSet).sort((a, b) => {
+        const getTimeMinutes = (slotStr) => {
+          const timePart = slotStr.split("–")[0];
+          const parts = timePart.trim().split(" ");
+          const time = parts[0];
+          const period = parts[1];
+          let [h, m] = time.split(":").map(Number);
+          if (period === "PM" && h !== 12) h += 12;
+          if (period === "AM" && h === 12) h = 0;
+          return h * 60 + (m || 0);
+        };
+        return getTimeMinutes(a) - getTimeMinutes(b);
+      });
+
+      // Initialize rows structure
+      const rows = safeClasses.map((c) => ({
+        classId: c.id,
+        className: c.name,
+        cells: []
+      }));
+
+      // Track teacher occupancies per slot
+      const busyTeachersPerSlot = {};
+      sortedSlots.forEach((slot) => {
+        busyTeachersPerSlot[slot] = new Set();
+      });
+
+      // Match availability helper
+      const isTeacherAvailableForSlot = (teacher, slotStr) => {
+        const [slotStartStr, slotEndStr] = slotStr.split("–");
+        
+        const getMin = (s) => {
+          const parts = s.trim().split(" ");
+          const time = parts[0];
+          const period = parts[1];
+          let [h, m] = time.split(":").map(Number);
+          if (period === "PM" && h !== 12) h += 12;
+          if (period === "AM" && h === 12) h = 0;
+          return h * 60 + (m || 0);
+        };
+
+        const slotStartMin = getMin(slotStartStr);
+        const slotEndMin = getMin(slotEndStr);
+
+        const teacherStartMin = parseTimeToMinutes(teacher.availableFrom);
+        const teacherEndMin = parseTimeToMinutes(teacher.availableTill);
+
+        if (teacherStartMin === null || teacherEndMin === null) return false;
+        return slotStartMin >= teacherStartMin && slotEndMin <= teacherEndMin;
+      };
+
+      // 3. Fill cells for each row and column slot
+      sortedSlots.forEach((slot) => {
+        rows.forEach((row) => {
+          const activeSlots = classSlotsMap[row.classId] || [];
+          const isActive = activeSlots.includes(slot);
+
+          if (!isActive) {
+            row.cells.push({ subject: "-", teacher: "", type: "empty" });
+          } else {
+            // Find eligible candidate teachers
+            const candidates = safeTeachers.filter((t) => {
+              const teachesThisClass = (t.allowedClasses || []).includes(row.className);
+              const availableInTime = isTeacherAvailableForSlot(t, slot);
+              const notBusy = !busyTeachersPerSlot[slot].has(t.id);
+              return teachesThisClass && availableInTime && notBusy;
+            });
+
+            if (candidates.length > 0) {
+              const chosenTeacher = candidates[Math.floor(Math.random() * candidates.length)];
+              const subject = chosenTeacher.secondSubject && Math.random() > 0.5 
+                ? chosenTeacher.secondSubject 
+                : chosenTeacher.subject;
+
+              row.cells.push({ subject, teacher: chosenTeacher.name, type: "lecture" });
+              busyTeachersPerSlot[slot].add(chosenTeacher.id);
+            } else {
+              row.cells.push({ subject: "-", teacher: "", type: "empty" });
+            }
+          }
+        });
+      });
+
+      const newTimetable = { timeSlots: sortedSlots, rows };
+      setTimeSlots(sortedSlots);
+      setTimetable(newTimetable);
+      saveData({
+        timeSlots: sortedSlots,
+        timetable: newTimetable
+      });
+      setActiveTab("preview");
+    } catch (err) {
+      console.error("Generate timetable error:", err);
+      setError("Unable to generate timetable. Please check class times and teacher availability.");
+    }
   };
 
-  // --- MANUAL EDITING ---
-  const handleCellEdit = (classId, slot, field, value) => {
-    const updated = { ...timetable };
-    if (!updated[classId]) updated[classId] = {};
-    if (!updated[classId][slot]) {
-      updated[classId][slot] = { subject: "-", teacher: "-", isTest: false };
+  // --- MANUAL EDITING VIA INDEXED CELLS ---
+  const handleCellEdit = (classId, slotIdx, field, value) => {
+    try {
+      const updatedRows = (timetable.rows || []).map((row) => {
+        if (row.classId === classId) {
+          const updatedCells = [...row.cells];
+          if (!updatedCells[slotIdx]) {
+            updatedCells[slotIdx] = { subject: "-", teacher: "", type: "empty" };
+          }
+          updatedCells[slotIdx] = {
+            ...updatedCells[slotIdx],
+            [field]: value,
+            type: updatedCells[slotIdx].type === "empty" && value !== "-" ? "lecture" : updatedCells[slotIdx].type
+          };
+          return { ...row, cells: updatedCells };
+        }
+        return row;
+      });
+
+      const updatedTimetable = { ...timetable, rows: updatedRows };
+      setTimetable(updatedTimetable);
+      saveData({ timetable: updatedTimetable });
+    } catch (e) {
+      console.error("handleCellEdit error:", e);
     }
-    updated[classId][slot][field] = value;
-    setTimetable(updated);
-    saveData({ timetable: updated });
   };
 
-  const toggleTestCell = (classId, slot) => {
-    const updated = { ...timetable };
-    if (!updated[classId]) updated[classId] = {};
-    if (!updated[classId][slot]) {
-      updated[classId][slot] = { subject: "-", teacher: "-", isTest: false };
-    }
-    updated[classId][slot].isTest = !updated[classId][slot].isTest;
-    
-    if (updated[classId][slot].isTest) {
-      updated[classId][slot].subject = "TEST";
-      updated[classId][slot].teacher = "";
-    } else {
-      updated[classId][slot].subject = "Subject";
-      updated[classId][slot].teacher = "Teacher";
-    }
+  const toggleTestCell = (classId, slotIdx) => {
+    try {
+      const updatedRows = (timetable.rows || []).map((row) => {
+        if (row.classId === classId) {
+          const updatedCells = [...row.cells];
+          const currentCell = updatedCells[slotIdx] || { subject: "-", teacher: "", type: "empty" };
+          
+          if (currentCell.type === "test") {
+            updatedCells[slotIdx] = { subject: "Subject", teacher: "Teacher", type: "lecture" };
+          } else {
+            updatedCells[slotIdx] = { subject: "TEST", teacher: "", type: "test" };
+          }
+          return { ...row, cells: updatedCells };
+        }
+        return row;
+      });
 
-    setTimetable(updated);
-    saveData({ timetable: updated });
+      const updatedTimetable = { ...timetable, rows: updatedRows };
+      setTimetable(updatedTimetable);
+      saveData({ timetable: updatedTimetable });
+    } catch (e) {
+      console.error("toggleTestCell error:", e);
+    }
   };
 
-  const handleClearCell = (classId, slot) => {
-    const updated = { ...timetable };
-    if (!updated[classId]) updated[classId] = {};
-    updated[classId][slot] = { subject: "-", teacher: "-", isTest: false };
-    setTimetable(updated);
-    saveData({ timetable: updated });
+  const handleClearCell = (classId, slotIdx) => {
+    try {
+      const updatedRows = (timetable.rows || []).map((row) => {
+        if (row.classId === classId) {
+          const updatedCells = [...row.cells];
+          updatedCells[slotIdx] = { subject: "-", teacher: "", type: "empty" };
+          return { ...row, cells: updatedCells };
+        }
+        return row;
+      });
+
+      const updatedTimetable = { ...timetable, rows: updatedRows };
+      setTimetable(updatedTimetable);
+      saveData({ timetable: updatedTimetable });
+    } catch (e) {
+      console.error("handleClearCell error:", e);
+    }
   };
 
   const handleClassNameChange = (classId, newName) => {
-    const updatedClasses = classes.map((c) => (c.id === classId ? { ...c, name: newName } : c));
-    setClasses(updatedClasses);
-    saveData({ classes: updatedClasses });
+    try {
+      const updatedClasses = (classes || []).map((c) => (c.id === classId ? { ...c, name: newName } : c));
+      setClasses(updatedClasses);
+
+      const updatedRows = (timetable.rows || []).map((row) => {
+        if (row.classId === classId) {
+          return { ...row, className: newName };
+        }
+        return row;
+      });
+
+      const updatedTimetable = { ...timetable, rows: updatedRows };
+      setTimetable(updatedTimetable);
+      saveData({ classes: updatedClasses, timetable: updatedTimetable });
+    } catch (e) {
+      console.error("handleClassNameChange error:", e);
+    }
   };
 
   const handleSlotNameChange = (index, newValue) => {
-    const updatedSlots = [...timeSlots];
-    updatedSlots[index] = newValue;
-    setTimeSlots(updatedSlots);
-    saveData({ timeSlots: updatedSlots });
+    try {
+      const updatedSlots = [...timeSlots];
+      updatedSlots[index] = newValue;
+      setTimeSlots(updatedSlots);
+
+      const updatedTimetable = { ...timetable, timeSlots: updatedSlots };
+      setTimetable(updatedTimetable);
+      saveData({ timeSlots: updatedSlots, timetable: updatedTimetable });
+    } catch (e) {
+      console.error("handleSlotNameChange error:", e);
+    }
   };
 
   const handleAddClassRow = () => {
-    const newId = `class-${Date.now()}`;
-    const newClass = { id: newId, name: `Class ${classes.length + 1}`, startTime: "16:00", endTime: "20:30" };
-    const updatedClasses = [...classes, newClass];
-    setClasses(updatedClasses);
+    try {
+      const newId = `class-${Date.now()}`;
+      const newName = `Class ${(classes || []).length + 1}`;
+      const updatedClasses = [...(classes || []), { id: newId, name: newName, startTime: "16:00", endTime: "20:30" }];
+      setClasses(updatedClasses);
 
-    const updatedTimetable = { ...timetable };
-    updatedTimetable[newId] = {};
-    timeSlots.forEach((slot) => {
-      updatedTimetable[newId][slot] = { subject: "-", teacher: "-", isTest: false };
-    });
+      const updatedRows = [...(timetable.rows || [])];
+      const newCells = (timeSlots || []).map(() => ({ subject: "-", teacher: "", type: "empty" }));
+      updatedRows.push({
+        classId: newId,
+        className: newName,
+        cells: newCells
+      });
 
-    setTimetable(updatedTimetable);
-    saveData({ classes: updatedClasses, timetable: updatedTimetable });
+      const updatedTimetable = { ...timetable, rows: updatedRows };
+      setTimetable(updatedTimetable);
+      saveData({ classes: updatedClasses, timetable: updatedTimetable });
+    } catch (e) {
+      console.error("handleAddClassRow error:", e);
+    }
   };
 
   const handleRemoveClassRow = (classId) => {
-    if (window.confirm("Remove this class row?")) {
-      const updatedClasses = classes.filter((c) => c.id !== classId);
-      const updatedTimetable = { ...timetable };
-      delete updatedTimetable[classId];
-      setClasses(updatedClasses);
-      setTimetable(updatedTimetable);
-      saveData({ classes: updatedClasses, timetable: updatedTimetable });
+    try {
+      if (window.confirm("Remove this class row?")) {
+        const updatedClasses = (classes || []).filter((c) => c.id !== classId);
+        setClasses(updatedClasses);
+
+        const updatedRows = (timetable.rows || []).filter((r) => r.classId !== classId);
+        const updatedTimetable = { ...timetable, rows: updatedRows };
+        setTimetable(updatedTimetable);
+        saveData({ classes: updatedClasses, timetable: updatedTimetable });
+      }
+    } catch (e) {
+      console.error("handleRemoveClassRow error:", e);
     }
   };
 
   const handleAddTimeSlot = () => {
-    const newSlot = "08:30 PM–09:00 PM";
-    const updatedSlots = [...timeSlots, newSlot];
-    setTimeSlots(updatedSlots);
-
-    const updatedTimetable = { ...timetable };
-    classes.forEach((c) => {
-      if (!updatedTimetable[c.id]) updatedTimetable[c.id] = {};
-      updatedTimetable[c.id][newSlot] = { subject: "-", teacher: "-", isTest: false };
-    });
-
-    setTimetable(updatedTimetable);
-    saveData({ timeSlots: updatedSlots, timetable: updatedTimetable });
-  };
-
-  const handleRemoveTimeSlot = (slotIndex) => {
-    if (window.confirm("Remove this time slot column?")) {
-      const targetSlot = timeSlots[slotIndex];
-      const updatedSlots = timeSlots.filter((_, idx) => idx !== slotIndex);
+    try {
+      const newSlot = "08:30 PM–09:00 PM";
+      const updatedSlots = [...(timeSlots || []), newSlot];
       setTimeSlots(updatedSlots);
 
-      const updatedTimetable = { ...timetable };
-      classes.forEach((c) => {
-        if (updatedTimetable[c.id]) {
-          delete updatedTimetable[c.id][targetSlot];
-        }
-      });
+      const updatedRows = (timetable.rows || []).map((row) => ({
+        ...row,
+        cells: [...(row.cells || []), { subject: "-", teacher: "", type: "empty" }]
+      }));
 
+      const updatedTimetable = { timeSlots: updatedSlots, rows: updatedRows };
       setTimetable(updatedTimetable);
       saveData({ timeSlots: updatedSlots, timetable: updatedTimetable });
+    } catch (e) {
+      console.error("handleAddTimeSlot error:", e);
     }
   };
 
-  // --- EXPORT LOGICS ---
+  const handleRemoveTimeSlot = (slotIndex) => {
+    try {
+      if (window.confirm("Remove this time slot column?")) {
+        const updatedSlots = (timeSlots || []).filter((_, idx) => idx !== slotIndex);
+        setTimeSlots(updatedSlots);
+
+        const updatedRows = (timetable.rows || []).map((row) => {
+          const updatedCells = (row.cells || []).filter((_, idx) => idx !== slotIndex);
+          return { ...row, cells: updatedCells };
+        });
+
+        const updatedTimetable = { timeSlots: updatedSlots, rows: updatedRows };
+        setTimetable(updatedTimetable);
+        saveData({ timeSlots: updatedSlots, timetable: updatedTimetable });
+      }
+    } catch (e) {
+      console.error("handleRemoveTimeSlot error:", e);
+    }
+  };
+
+  // --- EXPORT TRIGGERS ---
   const downloadPDF = async () => {
     const element = document.getElementById("timetable-export");
     if (!element) return;
@@ -464,10 +660,13 @@ export default function Home() {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setError("");
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                   activeTab === tab.id
-                    ? "bg-amber-50 text-stone-950 shadow-md transform -translate-y-0.5"
+                    ? "bg-amber-500 text-stone-950 shadow-md transform -translate-y-0.5"
                     : "text-stone-300 hover:bg-stone-800 hover:text-white"
                 }`}
               >
@@ -484,6 +683,24 @@ export default function Home() {
           </button>
         </div>
       </header>
+
+      {/* ERROR BANNER BOX */}
+      {error && (
+        <div className="no-print bg-red-100 border-l-4 border-red-500 text-red-700 p-4 max-w-7xl w-full mx-auto mt-4 rounded-r shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⚠️</span>
+              <p className="text-sm font-bold">{error}</p>
+            </div>
+            <button
+              onClick={() => setError("")}
+              className="text-red-500 hover:text-red-700 font-bold text-sm"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* WIZARD CONTAINER */}
       <main className="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 no-print">
@@ -601,13 +818,13 @@ export default function Home() {
               </h2>
               <button
                 onClick={() => {
-                  const num = prompt("How many classes would you like to have?", classes.length);
+                  const num = prompt("How many classes would you like to have?", (classes || []).length);
                   if (num !== null) {
                     const parsedNum = parseInt(num);
                     if (!isNaN(parsedNum) && parsedNum > 0) {
-                      const updated = [...classes];
-                      if (parsedNum > classes.length) {
-                        for (let i = classes.length; i < parsedNum; i++) {
+                      const updated = [...(classes || [])];
+                      if (parsedNum > updated.length) {
+                        for (let i = updated.length; i < parsedNum; i++) {
                           updated.push({
                             id: `class-${Date.now()}-${i}`,
                             name: `${i + 9}th`,
@@ -630,7 +847,7 @@ export default function Home() {
             </div>
 
             <div className="space-y-4">
-              {classes.map((c, index) => (
+              {(classes || []).map((c, index) => (
                 <div
                   key={c.id}
                   className="flex flex-col md:flex-row items-center gap-4 bg-white/50 p-4 border border-stone-200 rounded-lg shadow-sm"
@@ -697,7 +914,7 @@ export default function Home() {
                         setClasses(updated);
                         saveData({ classes: updated });
                       }}
-                      className="text-red-500 hover:text-red-650 p-2 hover:bg-red-50 rounded transition-all text-sm font-semibold"
+                      className="text-red-500 hover:text-red-655 p-2 hover:bg-red-50 rounded transition-all text-sm font-semibold"
                       title="Delete Class"
                     >
                       Delete
@@ -710,7 +927,7 @@ export default function Home() {
                 <button
                   onClick={() => {
                     const newId = `class-${Date.now()}`;
-                    const updated = [...classes, { id: newId, name: `Class ${classes.length + 1}`, startTime: "16:00", endTime: "20:30" }];
+                    const updated = [...(classes || []), { id: newId, name: `Class ${(classes || []).length + 1}`, startTime: "16:00", endTime: "20:30" }];
                     setClasses(updated);
                     saveData({ classes: updated });
                   }}
@@ -720,7 +937,10 @@ export default function Home() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("teachers")}
+                  onClick={() => {
+                    setActiveTab("teachers");
+                    setError("");
+                  }}
                   className="flex-grow bg-stone-900 hover:bg-stone-850 text-white font-bold py-2 rounded-lg text-sm transition-all"
                 >
                   Continue to Teachers Setup →
@@ -739,13 +959,13 @@ export default function Home() {
               </h2>
               <button
                 onClick={() => {
-                  const num = prompt("How many teachers would you like to configure?", teachers.length);
+                  const num = prompt("How many teachers would you like to configure?", (teachers || []).length);
                   if (num !== null) {
                     const parsedNum = parseInt(num);
                     if (!isNaN(parsedNum) && parsedNum > 0) {
-                      const updated = [...teachers];
-                      if (parsedNum > teachers.length) {
-                        for (let i = teachers.length; i < parsedNum; i++) {
+                      const updated = [...(teachers || [])];
+                      if (parsedNum > updated.length) {
+                        for (let i = updated.length; i < parsedNum; i++) {
                           updated.push({
                             id: `teacher-${Date.now()}-${i}`,
                             name: `Teacher ${i + 1}`,
@@ -753,7 +973,7 @@ export default function Home() {
                             secondSubject: "",
                             availableFrom: "16:00",
                             availableTill: "20:30",
-                            allowedClasses: classes.map((c) => c.name)
+                            allowedClasses: (classes || []).map((c) => c.name)
                           });
                         }
                       } else {
@@ -771,7 +991,7 @@ export default function Home() {
             </div>
 
             <div className="space-y-6">
-              {teachers.map((t, index) => (
+              {(teachers || []).map((t, index) => (
                 <div
                   key={t.id}
                   className="bg-white/60 p-5 border border-stone-200 rounded-xl shadow-sm space-y-4 relative"
@@ -782,7 +1002,7 @@ export default function Home() {
                       setTeachers(updated);
                       saveData({ teachers: updated });
                     }}
-                    className="absolute top-4 right-4 text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded text-xs font-semibold transition-all"
+                    className="absolute top-4 right-4 text-red-500 hover:text-red-750 hover:bg-red-50 px-2 py-1 rounded text-xs font-semibold transition-all"
                   >
                     Delete Teacher
                   </button>
@@ -832,7 +1052,7 @@ export default function Home() {
                       </label>
                       <input
                         type="text"
-                        value={t.secondSubject}
+                        value={t.secondSubject || ""}
                         onChange={(e) => {
                           const updated = teachers.map((item) =>
                             item.id === t.id ? { ...item, secondSubject: e.target.value } : item
@@ -889,8 +1109,8 @@ export default function Home() {
                       Classes Teacher Can Teach
                     </label>
                     <div className="flex flex-wrap gap-3">
-                      {classes.map((cls) => {
-                        const isChecked = t.allowedClasses.includes(cls.name);
+                      {(classes || []).map((cls) => {
+                        const isChecked = (t.allowedClasses || []).includes(cls.name);
                         return (
                           <label
                             key={cls.id}
@@ -904,9 +1124,10 @@ export default function Home() {
                               type="checkbox"
                               checked={isChecked}
                               onChange={(e) => {
+                                const allowed = t.allowedClasses || [];
                                 const newClasses = e.target.checked
-                                  ? [...t.allowedClasses, cls.name]
-                                  : t.allowedClasses.filter((name) => name !== cls.name);
+                                  ? [...allowed, cls.name]
+                                  : allowed.filter((name) => name !== cls.name);
 
                                 const updated = teachers.map((item) =>
                                   item.id === t.id ? { ...item, allowedClasses: newClasses } : item
@@ -930,15 +1151,15 @@ export default function Home() {
                   onClick={() => {
                     const newId = `teacher-${Date.now()}`;
                     const updated = [
-                      ...teachers,
+                      ...(teachers || []),
                       {
                         id: newId,
-                        name: `Teacher ${teachers.length + 1}`,
+                        name: `Teacher ${(teachers || []).length + 1}`,
                         subject: "Subject",
                         secondSubject: "",
                         availableFrom: "16:00",
                         availableTill: "20:30",
-                        allowedClasses: classes.map((c) => c.name)
+                        allowedClasses: (classes || []).map((c) => c.name)
                       }
                     ];
                     setTeachers(updated);
@@ -950,7 +1171,10 @@ export default function Home() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("generate")}
+                  onClick={() => {
+                    setActiveTab("generate");
+                    setError("");
+                  }}
                   className="flex-grow bg-stone-900 hover:bg-stone-850 text-white font-bold py-2 rounded-lg text-sm transition-all"
                 >
                   Continue to Timetable Generation →
@@ -997,7 +1221,7 @@ export default function Home() {
         {/* Step 5 & 6: Interactive Live A4 Preview & Edit Tab */}
         {activeTab === "preview" && (
           <div className="space-y-6">
-            {timeSlots.length === 0 ? (
+            {(!timeSlots || timeSlots.length === 0 || !(timetable && timetable.rows && timetable.rows.length > 0)) ? (
               <div className="glass-panel p-12 text-center max-w-lg mx-auto border border-stone-200 space-y-4">
                 <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto text-amber-600">
                   ⚠️
@@ -1007,7 +1231,10 @@ export default function Home() {
                   Configure classes and teachers, then click the Generate tab to create your master timetable.
                 </p>
                 <button
-                  onClick={() => setActiveTab("generate")}
+                  onClick={() => {
+                    setActiveTab("generate");
+                    setError("");
+                  }}
                   className="bg-stone-900 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-md hover:bg-stone-800 transition-all"
                 >
                   Go to Generate Tab
@@ -1067,15 +1294,13 @@ export default function Home() {
                 {/* PREVIEW CONTAINER - FULL REAL WYSIWYG A4 PAGE */}
                 <div className="flex justify-center overflow-x-auto py-6 bg-stone-200 border border-stone-300 rounded-xl shadow-inner">
                   <div className="shadow-2xl border border-stone-300 bg-white p-1">
-                    {/* Printable Canvas Ref */}
                     <div
                       id="timetable-export"
                       ref={previewRef}
                       className="a4-page"
                     >
-                      {/* Compact Header: Logo & Titles */}
+                      {/* Compact Header */}
                       <div className="header">
-                        {/* Logo Top Left */}
                         <div className="flex items-center justify-start">
                           {logo ? (
                             <img src={logo} alt="Crest Logo" className="logo" />
@@ -1089,7 +1314,6 @@ export default function Home() {
                           )}
                         </div>
 
-                        {/* Centered Main Title Heading Area */}
                         <div className="heading-area">
                           <h1>
                             <input
@@ -1114,18 +1338,17 @@ export default function Home() {
                             />
                           </h2>
                         </div>
-
                         <div className="w-20"></div>
                       </div>
 
-                      {/* Central Timetable Data Grid */}
+                      {/* Timetable wrapper container */}
                       <div className="content-area">
                         <div className="timetable-wrapper">
                           <table className="timetable-table">
                             <thead>
                               <tr>
                                 <th className="class-col">Class / Time</th>
-                                {timeSlots.map((slot, index) => (
+                                {(timeSlots || []).map((slot, index) => (
                                   <th
                                     key={index}
                                     className="relative group"
@@ -1148,45 +1371,45 @@ export default function Home() {
                               </tr>
                             </thead>
                             <tbody>
-                              {classes.map((cls) => (
-                                <tr key={cls.id}>
-                                  <td className="class-col relative group">
+                              {(timetable.rows || []).map((row) => (
+                                <tr key={row.classId}>
+                                  <td className="class-col relative group bg-stone-50">
                                     <input
                                       type="text"
-                                      value={cls.name}
-                                      onChange={(e) => handleClassNameChange(cls.id, e.target.value)}
-                                      className="bg-transparent text-center font-black border-none focus:outline-none focus:ring-1 focus:ring-amber-500 w-full"
+                                      value={row.className}
+                                      onChange={(e) => handleClassNameChange(row.classId, e.target.value)}
+                                      className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold w-full"
                                     />
                                     <button
-                                      onClick={() => handleRemoveClassRow(cls.id)}
-                                      className="absolute top-1 right-1 hidden group-hover:block text-red-650 font-bold text-xs no-print"
+                                      onClick={() => handleRemoveClassRow(row.classId)}
+                                      className="absolute top-1 right-1 hidden group-hover:block text-red-655 font-bold text-xs no-print"
                                       title="Remove Row"
                                     >
                                       ✕
                                     </button>
                                   </td>
-                                  {timeSlots.map((slot, index) => {
-                                    const cell = timetable[cls.id]?.[slot] || { subject: "-", teacher: "-", isTest: false };
+                                  {(timeSlots || []).map((slot, slotIdx) => {
+                                    const cell = (row.cells || [])[slotIdx] || { subject: "-", teacher: "", type: "empty" };
                                     return (
                                       <td
-                                        key={index}
+                                        key={slotIdx}
                                         className="relative group"
                                       >
-                                        {cell.isTest ? (
+                                        {cell.type === "test" ? (
                                           <span className="test-cell select-none">TEST</span>
                                         ) : (
                                           <>
                                             <input
                                               type="text"
                                               value={cell.subject}
-                                              onChange={(e) => handleCellEdit(cls.id, slot, "subject", e.target.value)}
+                                              onChange={(e) => handleCellEdit(row.classId, slotIdx, "subject", e.target.value)}
                                               className="subject bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0"
                                               placeholder="Subject"
                                             />
                                             <input
                                               type="text"
                                               value={cell.teacher}
-                                              onChange={(e) => handleCellEdit(cls.id, slot, "teacher", e.target.value)}
+                                              onChange={(e) => handleCellEdit(row.classId, slotIdx, "teacher", e.target.value)}
                                               className="teacher bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0"
                                               placeholder="Teacher"
                                             />
@@ -1196,9 +1419,9 @@ export default function Home() {
                                         {/* Action Hover Badges */}
                                         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-0.5 transition-all bg-white/95 px-0.5 py-0.5 rounded shadow border border-stone-200 no-print">
                                           <button
-                                            onClick={() => toggleTestCell(cls.id, slot)}
+                                            onClick={() => toggleTestCell(row.classId, slotIdx)}
                                             className={`px-0.5 rounded text-3xs font-bold ${
-                                              cell.isTest
+                                              cell.type === "test"
                                                 ? "bg-stone-200 text-stone-850"
                                                 : "bg-amber-500 text-stone-950"
                                             }`}
@@ -1207,8 +1430,8 @@ export default function Home() {
                                             T
                                           </button>
                                           <button
-                                            onClick={() => handleClearCell(cls.id, slot)}
-                                            className="bg-red-500 hover:bg-red-650 text-white px-0.5 rounded text-3xs font-bold"
+                                            onClick={() => handleClearCell(row.classId, slotIdx)}
+                                            className="bg-red-500 hover:bg-red-655 text-white px-0.5 rounded text-3xs font-bold"
                                             title="Clear Cell"
                                           >
                                             C
@@ -1238,7 +1461,7 @@ export default function Home() {
                             placeholder="LA25092025 V 1.1"
                           />
                         </div>
-                        <div className="italic text-stone-950">LEAPS Academy Time Table Maker v1.1</div>
+                        <div className="italic text-stone-950 font-serif">LEAPS Academy Time Table Maker v1.1</div>
                       </div>
                     </div>
                   </div>
