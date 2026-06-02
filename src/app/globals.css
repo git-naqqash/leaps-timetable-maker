@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   --background: #faf9f6;
@@ -27,131 +27,139 @@ body {
   border-radius: 16px;
 }
 
-/* --- EXACT A4 LANDSCAPE PRINT RULES --- */
-.a4-page {
-  width: 297mm;
-  height: 210mm;
-  background: white;
+/* --- PIXEL-BASED A4 LANDSCAPE PRINT RULES --- */
+.export-page {
+  width: 1123px;
+  height: 794px;
+  background: #ffffff;
   box-sizing: border-box;
-  padding: 7mm 8mm;
-  border: 4px double #111;
+  padding: 22px 28px;
+  border: 6px double #111;
   position: relative;
   overflow: hidden;
   font-family: "Times New Roman", serif;
   color: #000000 !important;
 }
 
-.header {
-  height: 28mm;
+.export-header {
+  height: 105px;
   display: grid;
-  grid-template-columns: 35mm 1fr 35mm;
+  grid-template-columns: 130px 1fr 130px;
   align-items: center;
   border-bottom: 2px solid #111;
-  margin-bottom: 5mm;
+  margin-bottom: 14px;
   color: #000000 !important;
 }
 
-.logo {
-  max-width: 22mm;
-  max-height: 18mm;
+.export-logo {
+  max-width: 75px;
+  max-height: 55px;
   object-fit: contain;
 }
 
-.heading-area {
+.export-title {
   text-align: center;
   color: #000000 !important;
 }
 
-.heading-area h1 {
-  margin: 0 0 5mm 0;
+.export-title h1 {
+  margin: 0 0 14px 0;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: 7px;
+  font-weight: 700;
+  color: #000000 !important;
+}
+
+.export-title h2 {
+  margin: 0;
   font-size: 24px;
+  line-height: 1;
   letter-spacing: 5px;
   font-weight: 700;
   color: #000000 !important;
 }
 
-.heading-area h2 {
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: 4px;
-  font-weight: 700;
-  color: #000000 !important;
-}
-
-.timetable-wrapper {
+.export-table-wrapper {
   width: 100%;
-  height: 135mm;
+  height: 555px;
   overflow: hidden;
 }
 
-.timetable-table {
+.export-table {
   width: 100%;
+  height: auto;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
-.timetable-table th,
-.timetable-table td {
-  border: 1.5px solid #111;
+.export-table th,
+.export-table td {
+  border: 2px solid #111;
   text-align: center;
   vertical-align: middle;
-  padding: 2px;
+  box-sizing: border-box;
   overflow: hidden;
   color: #000000 !important;
 }
 
-.timetable-table th {
-  height: 8mm;
-  font-size: 11px;
+.export-table th {
+  height: 36px;
+  padding: 3px 2px;
+  font-size: 14px;
+  line-height: 1.05;
   font-weight: 700;
   white-space: nowrap;
   background: #ffffff !important;
 }
 
-.timetable-table td {
-  height: 20mm;
-  font-size: 12px;
+.export-table td {
+  height: 72px;
+  padding: 4px 3px;
+  font-size: 16px;
   line-height: 1.15;
   background: #ffffff !important;
 }
 
-.class-col {
-  width: 24mm;
-  font-size: 15px !important;
+.export-class-col {
+  width: 86px;
+  font-size: 22px !important;
   font-weight: 700;
 }
 
-.subject {
+.export-subject {
   display: block;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 15px;
+  line-height: 1.15;
   color: #000000 !important;
 }
 
-.teacher {
+.export-teacher {
   display: block;
   font-style: italic;
-  font-size: 13px;
-  margin-top: 3px;
+  font-size: 17px;
+  line-height: 1.15;
+  margin-top: 6px;
   color: #000000 !important;
 }
 
-.test-cell {
-  font-size: 22px;
+.export-test-cell {
+  font-size: 30px;
   font-weight: 700;
   text-decoration: underline;
   color: #000000 !important;
 }
 
-.footer {
+.export-footer {
   position: absolute;
-  left: 8mm;
-  right: 8mm;
-  bottom: 6mm;
+  left: 28px;
+  right: 28px;
+  bottom: 22px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 700;
   color: #000000 !important;
 }
@@ -172,13 +180,23 @@ body {
     display: none !important;
   }
   
-  .a4-page {
+  .export-page {
     width: 297mm;
     height: 210mm;
     margin: 0 !important;
-    border: 4px double #111 !important;
+    border: 6px double #111 !important;
     box-shadow: none !important;
     page-break-inside: avoid;
+    padding: 7mm 8mm; /* Convert pixel padding to match A4 mm print sizes roughly */
+  }
+  
+  .export-header {
+    height: 28mm;
+    margin-bottom: 5mm;
+  }
+  
+  .export-table-wrapper {
+    height: 140mm;
   }
 
   @page {

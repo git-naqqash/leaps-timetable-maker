@@ -46,7 +46,6 @@ export default function Home() {
   ]);
 
   // Step 4 & 5: Timetable Data
-  // Structured exactly as: { timeSlots: [...], rows: [ { classId: "...", className: "...", cells: [ { subject: "...", teacher: "...", type: "..." } ] } ] }
   const [timetable, setTimetable] = useState({ timeSlots: [], rows: [] });
   const [timeSlots, setTimeSlots] = useState([]);
 
@@ -73,7 +72,6 @@ export default function Home() {
       
       if (savedTimetable) {
         const parsed = JSON.parse(savedTimetable);
-        // Safeguard format transition
         if (parsed && Array.isArray(parsed.rows)) {
           setTimetable(parsed);
         } else {
@@ -161,7 +159,6 @@ export default function Home() {
     if (!timeStr) return null;
     try {
       timeStr = timeStr.trim().toUpperCase();
-      // Match AM/PM representation
       const amp = timeStr.match(/(AM|PM)/);
       if (amp) {
         const period = amp[1];
@@ -174,7 +171,6 @@ export default function Home() {
         if (period === "AM" && h === 12) h = 0;
         return h * 60 + m;
       }
-      // Match HH:mm representation
       const parts = timeStr.split(":");
       const h = parseInt(parts[0], 10);
       const m = parts[1] ? parseInt(parts[1], 10) : 0;
@@ -237,7 +233,6 @@ export default function Home() {
       const safeClasses = classes || [];
       const safeTeachers = teachers || [];
 
-      // 1. Validation check
       let hasClassError = false;
       safeClasses.forEach((c) => {
         if (!c.name || !c.name.trim() || !c.startTime || !c.endTime) {
@@ -266,7 +261,6 @@ export default function Home() {
         return;
       }
 
-      // Validate time boundaries
       for (let i = 0; i < safeClasses.length; i++) {
         const c = safeClasses[i];
         const start = parseTimeToMinutes(c.startTime);
@@ -287,7 +281,6 @@ export default function Home() {
         }
       }
 
-      // 2. Generate class slots maps
       const classSlotsMap = {};
       const allUniqueSlotsSet = new Set();
 
@@ -297,7 +290,6 @@ export default function Home() {
         slots.forEach((s) => allUniqueSlotsSet.add(s));
       });
 
-      // Sort unique slots
       const sortedSlots = Array.from(allUniqueSlotsSet).sort((a, b) => {
         const getTimeMinutes = (slotStr) => {
           const timePart = slotStr.split("–")[0];
@@ -312,20 +304,17 @@ export default function Home() {
         return getTimeMinutes(a) - getTimeMinutes(b);
       });
 
-      // Initialize rows structure
       const rows = safeClasses.map((c) => ({
         classId: c.id,
         className: c.name,
         cells: []
       }));
 
-      // Track teacher occupancies per slot
       const busyTeachersPerSlot = {};
       sortedSlots.forEach((slot) => {
         busyTeachersPerSlot[slot] = new Set();
       });
 
-      // Match availability helper
       const isTeacherAvailableForSlot = (teacher, slotStr) => {
         const [slotStartStr, slotEndStr] = slotStr.split("–");
         
@@ -349,7 +338,6 @@ export default function Home() {
         return slotStartMin >= teacherStartMin && slotEndMin <= teacherEndMin;
       };
 
-      // 3. Fill cells for each row and column slot
       sortedSlots.forEach((slot) => {
         rows.forEach((row) => {
           const activeSlots = classSlotsMap[row.classId] || [];
@@ -358,7 +346,6 @@ export default function Home() {
           if (!isActive) {
             row.cells.push({ subject: "-", teacher: "", type: "empty" });
           } else {
-            // Find eligible candidate teachers
             const candidates = safeTeachers.filter((t) => {
               const teachesThisClass = (t.allowedClasses || []).includes(row.className);
               const availableInTime = isTeacherAvailableForSlot(t, slot);
@@ -395,7 +382,7 @@ export default function Home() {
     }
   };
 
-  // --- MANUAL EDITING VIA INDEXED CELLS ---
+  // --- MANUAL EDITING ---
   const handleCellEdit = (classId, slotIdx, field, value) => {
     try {
       const updatedRows = (timetable.rows || []).map((row) => {
@@ -578,21 +565,27 @@ export default function Home() {
     }
   };
 
-  // --- EXPORT TRIGGERS ---
+  // --- EXPORT FUNCTIONS ---
   const downloadPDF = async () => {
     const element = document.getElementById("timetable-export");
-    if (!element) return;
+    if (!element) {
+      alert("Please generate timetable first.");
+      return;
+    }
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const canvas = await html2canvas(element, {
-      scale: 3,
+      scale: 2,
       useCORS: true,
+      allowTaint: true,
       backgroundColor: "#ffffff",
-      width: element.offsetWidth,
-      height: element.offsetHeight,
-      windowWidth: element.scrollWidth,
-      windowHeight: element.scrollHeight
+      width: 1123,
+      height: 794,
+      windowWidth: 1123,
+      windowHeight: 794,
+      scrollX: 0,
+      scrollY: 0
     });
 
     const imgData = canvas.toDataURL("image/png");
@@ -600,7 +593,8 @@ export default function Home() {
     const pdf = new jsPDF({
       orientation: "landscape",
       unit: "mm",
-      format: "a4"
+      format: "a4",
+      compress: true
     });
 
     pdf.addImage(imgData, "PNG", 0, 0, 297, 210);
@@ -609,18 +603,24 @@ export default function Home() {
 
   const downloadJPG = async () => {
     const element = document.getElementById("timetable-export");
-    if (!element) return;
+    if (!element) {
+      alert("Please generate timetable first.");
+      return;
+    }
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const canvas = await html2canvas(element, {
-      scale: 3,
+      scale: 2,
       useCORS: true,
+      allowTaint: true,
       backgroundColor: "#ffffff",
-      width: element.offsetWidth,
-      height: element.offsetHeight,
-      windowWidth: element.scrollWidth,
-      windowHeight: element.scrollHeight
+      width: 1123,
+      height: 794,
+      windowWidth: 1123,
+      windowHeight: 794,
+      scrollX: 0,
+      scrollY: 0
     });
 
     const link = document.createElement("a");
@@ -666,7 +666,7 @@ export default function Home() {
                 }}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                   activeTab === tab.id
-                    ? "bg-amber-500 text-stone-950 shadow-md transform -translate-y-0.5"
+                    ? "bg-amber-50 text-stone-950 shadow-md transform -translate-y-0.5"
                     : "text-stone-300 hover:bg-stone-800 hover:text-white"
                 }`}
               >
@@ -914,7 +914,7 @@ export default function Home() {
                         setClasses(updated);
                         saveData({ classes: updated });
                       }}
-                      className="text-red-500 hover:text-red-655 p-2 hover:bg-red-50 rounded transition-all text-sm font-semibold"
+                      className="text-red-500 hover:text-red-650 p-2 hover:bg-red-50 rounded transition-all text-sm font-semibold"
                       title="Delete Class"
                     >
                       Delete
@@ -1002,7 +1002,7 @@ export default function Home() {
                       setTeachers(updated);
                       saveData({ teachers: updated });
                     }}
-                    className="absolute top-4 right-4 text-red-500 hover:text-red-750 hover:bg-red-50 px-2 py-1 rounded text-xs font-semibold transition-all"
+                    className="absolute top-4 right-4 text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded text-xs font-semibold transition-all"
                   >
                     Delete Teacher
                   </button>
@@ -1294,16 +1294,17 @@ export default function Home() {
                 {/* PREVIEW CONTAINER - FULL REAL WYSIWYG A4 PAGE */}
                 <div className="flex justify-center overflow-x-auto py-6 bg-stone-200 border border-stone-300 rounded-xl shadow-inner">
                   <div className="shadow-2xl border border-stone-300 bg-white p-1">
+                    {/* Timetable Export Container */}
                     <div
                       id="timetable-export"
                       ref={previewRef}
-                      className="a4-page"
+                      className="export-page"
                     >
-                      {/* Compact Header */}
-                      <div className="header">
+                      {/* Export Header */}
+                      <div className="export-header">
                         <div className="flex items-center justify-start">
                           {logo ? (
-                            <img src={logo} alt="Crest Logo" className="logo" />
+                            <img src={logo} alt="Crest Logo" className="export-logo" />
                           ) : (
                             <div className="w-14 h-14 border border-stone-950 rounded-full flex flex-col items-center justify-center text-center p-0.5 bg-white">
                               <div className="border border-stone-950 rounded-full w-full h-full flex flex-col items-center justify-center">
@@ -1314,7 +1315,8 @@ export default function Home() {
                           )}
                         </div>
 
-                        <div className="heading-area">
+                        {/* Heading Titles */}
+                        <div className="export-title">
                           <h1>
                             <input
                               type="text"
@@ -1341,114 +1343,112 @@ export default function Home() {
                         <div className="w-20"></div>
                       </div>
 
-                      {/* Timetable wrapper container */}
-                      <div className="content-area">
-                        <div className="timetable-wrapper">
-                          <table className="timetable-table">
-                            <thead>
-                              <tr>
-                                <th className="class-col">Class / Time</th>
-                                {(timeSlots || []).map((slot, index) => (
-                                  <th
-                                    key={index}
-                                    className="relative group"
+                      {/* Timetable grid */}
+                      <div className="export-table-wrapper">
+                        <table className="export-table">
+                          <thead>
+                            <tr>
+                              <th className="export-class-col">Class / Time</th>
+                              {(timeSlots || []).map((slot, index) => (
+                                <th
+                                  key={index}
+                                  className="relative group"
+                                >
+                                  <input
+                                    type="text"
+                                    value={slot}
+                                    onChange={(e) => handleSlotNameChange(index, e.target.value)}
+                                    className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold w-full"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveTimeSlot(index)}
+                                    className="absolute -top-1 -right-1 hidden group-hover:block bg-red-655 text-white w-4 h-4 rounded-full text-3xs font-extrabold no-print shadow"
+                                    title="Remove Column"
                                   >
-                                    <input
-                                      type="text"
-                                      value={slot}
-                                      onChange={(e) => handleSlotNameChange(index, e.target.value)}
-                                      className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold w-full"
-                                    />
-                                    <button
-                                      onClick={() => handleRemoveTimeSlot(index)}
-                                      className="absolute -top-1 -right-1 hidden group-hover:block bg-red-650 text-white w-4 h-4 rounded-full text-3xs font-extrabold no-print shadow"
-                                      title="Remove Column"
-                                    >
-                                      ✕
-                                    </button>
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(timetable.rows || []).map((row) => (
-                                <tr key={row.classId}>
-                                  <td className="class-col relative group bg-stone-50">
-                                    <input
-                                      type="text"
-                                      value={row.className}
-                                      onChange={(e) => handleClassNameChange(row.classId, e.target.value)}
-                                      className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold w-full"
-                                    />
-                                    <button
-                                      onClick={() => handleRemoveClassRow(row.classId)}
-                                      className="absolute top-1 right-1 hidden group-hover:block text-red-655 font-bold text-xs no-print"
-                                      title="Remove Row"
-                                    >
-                                      ✕
-                                    </button>
-                                  </td>
-                                  {(timeSlots || []).map((slot, slotIdx) => {
-                                    const cell = (row.cells || [])[slotIdx] || { subject: "-", teacher: "", type: "empty" };
-                                    return (
-                                      <td
-                                        key={slotIdx}
-                                        className="relative group"
-                                      >
-                                        {cell.type === "test" ? (
-                                          <span className="test-cell select-none">TEST</span>
-                                        ) : (
-                                          <>
-                                            <input
-                                              type="text"
-                                              value={cell.subject}
-                                              onChange={(e) => handleCellEdit(row.classId, slotIdx, "subject", e.target.value)}
-                                              className="subject bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0"
-                                              placeholder="Subject"
-                                            />
-                                            <input
-                                              type="text"
-                                              value={cell.teacher}
-                                              onChange={(e) => handleCellEdit(row.classId, slotIdx, "teacher", e.target.value)}
-                                              className="teacher bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0"
-                                              placeholder="Teacher"
-                                            />
-                                          </>
-                                        )}
-
-                                        {/* Action Hover Badges */}
-                                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-0.5 transition-all bg-white/95 px-0.5 py-0.5 rounded shadow border border-stone-200 no-print">
-                                          <button
-                                            onClick={() => toggleTestCell(row.classId, slotIdx)}
-                                            className={`px-0.5 rounded text-3xs font-bold ${
-                                              cell.type === "test"
-                                                ? "bg-stone-200 text-stone-850"
-                                                : "bg-amber-500 text-stone-950"
-                                            }`}
-                                            title="Toggle TEST"
-                                          >
-                                            T
-                                          </button>
-                                          <button
-                                            onClick={() => handleClearCell(row.classId, slotIdx)}
-                                            className="bg-red-500 hover:bg-red-655 text-white px-0.5 rounded text-3xs font-bold"
-                                            title="Clear Cell"
-                                          >
-                                            C
-                                          </button>
-                                        </div>
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
+                                    ✕
+                                  </button>
+                                </th>
                               ))}
-                            </tbody>
-                          </table>
-                        </div>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(timetable.rows || []).map((row) => (
+                              <tr key={row.classId}>
+                                <td className="export-class-col relative group bg-stone-50">
+                                  <input
+                                    type="text"
+                                    value={row.className}
+                                    onChange={(e) => handleClassNameChange(row.classId, e.target.value)}
+                                    className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold w-full font-serif"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveClassRow(row.classId)}
+                                    className="absolute top-1 right-1 hidden group-hover:block text-red-655 font-bold text-xs no-print"
+                                    title="Remove Row"
+                                  >
+                                    ✕
+                                  </button>
+                                </td>
+                                {(timeSlots || []).map((slot, slotIdx) => {
+                                  const cell = (row.cells || [])[slotIdx] || { subject: "-", teacher: "", type: "empty" };
+                                  return (
+                                    <td
+                                      key={slotIdx}
+                                      className="relative group bg-white text-stone-950"
+                                    >
+                                      {cell.type === "test" ? (
+                                        <span className="export-test-cell select-none">TEST</span>
+                                      ) : (
+                                        <>
+                                          <input
+                                            type="text"
+                                            value={cell.subject}
+                                            onChange={(e) => handleCellEdit(row.classId, slotIdx, "subject", e.target.value)}
+                                            className="export-subject bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0 font-serif"
+                                            placeholder="Subject"
+                                          />
+                                          <input
+                                            type="text"
+                                            value={cell.teacher}
+                                            onChange={(e) => handleCellEdit(row.classId, slotIdx, "teacher", e.target.value)}
+                                            className="export-teacher bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 w-full p-0 font-serif"
+                                            placeholder="Teacher"
+                                          />
+                                        </>
+                                      )}
+
+                                      {/* Action hover tools */}
+                                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-0.5 transition-all bg-white/95 px-0.5 py-0.5 rounded shadow border border-stone-200 no-print">
+                                        <button
+                                          onClick={() => toggleTestCell(row.classId, slotIdx)}
+                                          className={`px-0.5 rounded text-3xs font-bold ${
+                                            cell.type === "test"
+                                              ? "bg-stone-200 text-stone-850"
+                                              : "bg-amber-500 text-stone-950"
+                                          }`}
+                                          title="Toggle TEST"
+                                        >
+                                          T
+                                        </button>
+                                        <button
+                                          onClick={() => handleClearCell(row.classId, slotIdx)}
+                                          className="bg-red-500 hover:bg-red-655 text-white px-0.5 rounded text-3xs font-bold"
+                                          title="Clear Cell"
+                                        >
+                                          C
+                                        </button>
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
 
                       {/* Absolute Footer */}
-                      <div className="footer">
+                      <div className="export-footer font-serif">
                         <div>
                           <input
                             type="text"
@@ -1457,11 +1457,11 @@ export default function Home() {
                               setFooterText(e.target.value);
                               saveData({ footerText: e.target.value });
                             }}
-                            className="bg-transparent font-bold border-none focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-950 w-48"
+                            className="bg-transparent font-bold border-none focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-950 w-48 font-serif"
                             placeholder="LA25092025 V 1.1"
                           />
                         </div>
-                        <div className="italic text-stone-950 font-serif">LEAPS Academy Time Table Maker v1.1</div>
+                        <div className="italic text-stone-950">LEAPS Academy Time Table Maker v1.1</div>
                       </div>
                     </div>
                   </div>
