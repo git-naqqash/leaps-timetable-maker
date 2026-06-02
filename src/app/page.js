@@ -226,7 +226,7 @@ export default function Home() {
     }
   };
 
-  // --- GENERATION ENGINE WITH SAFE VALIDATIONS ---
+  // --- GENERATION ENGINE ---
   const generateTimetable = () => {
     setError("");
     try {
@@ -885,7 +885,7 @@ export default function Home() {
                         setClasses(updated);
                         saveData({ classes: updated });
                       }}
-                      className="w-full bg-white border border-stone-300 rounded px-3 py-2 text-stone-950 text-sm"
+                      className="w-full bg-white border border-stone-300 rounded px-3 py-2 text-stone-955 text-sm"
                     />
                   </div>
 
@@ -903,7 +903,7 @@ export default function Home() {
                         setClasses(updated);
                         saveData({ classes: updated });
                       }}
-                      className="w-full bg-white border border-stone-300 rounded px-3 py-2 text-stone-950 text-sm"
+                      className="w-full bg-white border border-stone-300 rounded px-3 py-2 text-stone-955 text-sm"
                     />
                   </div>
 
@@ -914,7 +914,7 @@ export default function Home() {
                         setClasses(updated);
                         saveData({ classes: updated });
                       }}
-                      className="text-red-500 hover:text-red-650 p-2 hover:bg-red-50 rounded transition-all text-sm font-semibold"
+                      className="text-red-500 hover:text-red-655 p-2 hover:bg-red-50 rounded transition-all text-sm font-semibold"
                       title="Delete Class"
                     >
                       Delete
@@ -984,7 +984,7 @@ export default function Home() {
                     }
                   }
                 }}
-                className="text-xs font-semibold px-3 py-1.5 border border-stone-400 hover:border-amber-500 text-stone-700 hover:text-stone-950 rounded transition-all"
+                className="text-xs font-semibold px-3 py-1.5 border border-stone-400 hover:border-amber-500 text-stone-700 hover:text-stone-955 rounded transition-all"
               >
                 Set Teacher Count
               </button>
@@ -1002,7 +1002,7 @@ export default function Home() {
                       setTeachers(updated);
                       saveData({ teachers: updated });
                     }}
-                    className="absolute top-4 right-4 text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded text-xs font-semibold transition-all"
+                    className="absolute top-4 right-4 text-red-500 hover:text-red-750 hover:bg-red-50 px-2 py-1 rounded text-xs font-semibold transition-all"
                   >
                     Delete Teacher
                   </button>
@@ -1193,7 +1193,7 @@ export default function Home() {
               </svg>
             </div>
             
-            <h2 className="text-2xl font-bold text-stone-950 font-serif">
+            <h2 className="text-2xl font-bold text-stone-955 font-serif">
               Generate Academic Timetable
             </h2>
 
@@ -1245,7 +1245,7 @@ export default function Home() {
                 {/* Control panel and downloads */}
                 <div className="glass-panel p-6 shadow-md border border-stone-200 flex flex-wrap justify-between items-center gap-4">
                   <div>
-                    <h2 className="text-xl font-bold text-stone-950 font-serif">
+                    <h2 className="text-xl font-bold text-stone-955 font-serif">
                       A4 Landscape Live Editor & Exports
                     </h2>
                     <p className="text-stone-500 text-xs mt-0.5">
@@ -1292,7 +1292,7 @@ export default function Home() {
                 </div>
 
                 {/* PREVIEW CONTAINER - FULL REAL WYSIWYG A4 PAGE */}
-                <div className="flex justify-center overflow-x-auto py-6 bg-stone-200 border border-stone-300 rounded-xl shadow-inner">
+                <div className="flex justify-center overflow-x-auto py-6 bg-stone-200 border border-stone-300 rounded-xl shadow-inner animate-fade-in">
                   <div className="shadow-2xl border border-stone-300 bg-white p-1">
                     {/* Timetable Export Container */}
                     <div
@@ -1306,10 +1306,10 @@ export default function Home() {
                           {logo ? (
                             <img src={logo} alt="Crest Logo" className="export-logo" />
                           ) : (
-                            <div className="w-14 h-14 border border-stone-950 rounded-full flex flex-col items-center justify-center text-center p-0.5 bg-white">
-                              <div className="border border-stone-950 rounded-full w-full h-full flex flex-col items-center justify-center">
-                                <span className="text-4xs font-bold leading-none">LEAPS</span>
-                                <span className="text-5xs font-serif leading-none mt-0.5">ACADEMY</span>
+                            <div className="w-14 h-14 border border-stone-955 rounded-full flex flex-col items-center justify-center text-center p-0.5 bg-white">
+                              <div className="border border-stone-955 rounded-full w-full h-full flex flex-col items-center justify-center">
+                                <span className="text-4xs font-bold leading-none text-black">LEAPS</span>
+                                <span className="text-5xs font-serif leading-none mt-0.5 text-black">ACADEMY</span>
                               </div>
                             </div>
                           )}
@@ -1343,7 +1343,7 @@ export default function Home() {
                         <div className="w-20"></div>
                       </div>
 
-                      {/* Timetable grid */}
+                      {/* Timetable wrapper container */}
                       <div className="export-table-wrapper">
                         <table className="export-table">
                           <thead>
@@ -1379,7 +1379,7 @@ export default function Home() {
                                     type="text"
                                     value={row.className}
                                     onChange={(e) => handleClassNameChange(row.classId, e.target.value)}
-                                    className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold w-full font-serif"
+                                    className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold w-full font-serif text-black"
                                   />
                                   <button
                                     onClick={() => handleRemoveClassRow(row.classId)}
@@ -1471,6 +1471,93 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* --- HIDDEN ABSOLUTE PRINT CONTAINER (ONLY VISIBLE ON PRINT EVENT) --- */}
+      <div className="hidden print:block absolute top-0 left-0 bg-white">
+        <div
+          className="export-page"
+          style={{
+            fontFamily: "'Playfair Display', serif"
+          }}
+        >
+          <div className="export-header">
+            <div className="flex items-center justify-start">
+              {logo ? (
+                <img src={logo} alt="Crest Logo" className="export-logo" />
+              ) : (
+                <div className="w-14 h-14 border border-stone-955 rounded-full flex flex-col items-center justify-center text-center p-0.5 bg-white">
+                  <div className="border border-stone-955 rounded-full w-full h-full flex flex-col items-center justify-center">
+                    <span className="text-4xs font-bold leading-none text-black">LEAPS</span>
+                    <span className="text-5xs font-serif leading-none mt-0.5 text-black">ACADEMY</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="export-title">
+              <h1>{academyName}</h1>
+              <h2>{headingText}</h2>
+            </div>
+            <div className="w-20"></div>
+          </div>
+
+          <div className="export-table-wrapper">
+            <table className="export-table">
+              <thead>
+                <tr>
+                  <th className="export-class-col">Class / Time</th>
+                  {(timeSlots || []).map((slot, index) => (
+                    <th
+                      key={index}
+                      className="font-bold font-serif text-black"
+                    >
+                      {slot}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(timetable.rows || []).map((row) => (
+                  <tr key={row.classId}>
+                    <td className="export-class-col bg-stone-50 text-black">
+                      {row.className}
+                    </td>
+                    {(timeSlots || []).map((slot, index) => {
+                      const cell = (row.cells || [])[index] || { subject: "-", teacher: "", type: "empty" };
+                      return (
+                        <td
+                          key={index}
+                          className="bg-white text-stone-950"
+                        >
+                          {cell.type === "test" ? (
+                            <span className="export-test-cell select-none">TEST</span>
+                          ) : (
+                            <div className="space-y-0.5">
+                              <span className="export-subject block text-stone-950 leading-tight">
+                                {cell.subject}
+                              </span>
+                              {cell.teacher && (
+                                <span className="export-teacher block text-stone-700 leading-none">
+                                  {cell.teacher}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="export-footer">
+            <span>{footerText}</span>
+            <span className="italic">LEAPS Academy Time Table Maker v1.1</span>
+          </div>
+        </div>
+      </div>
 
       {/* FOOTER BAR */}
       <footer className="bg-stone-900 text-stone-500 py-6 border-t border-stone-850 text-center text-xs no-print">
