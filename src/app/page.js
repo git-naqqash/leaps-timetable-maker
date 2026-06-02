@@ -580,10 +580,10 @@ export default function Home() {
       useCORS: true,
       allowTaint: true,
       backgroundColor: "#ffffff",
-      width: 1123,
-      height: 794,
-      windowWidth: 1123,
-      windowHeight: 794,
+      width: element.offsetWidth,
+      height: element.offsetHeight,
+      windowWidth: element.offsetWidth,
+      windowHeight: element.offsetHeight,
       scrollX: 0,
       scrollY: 0
     });
@@ -615,10 +615,10 @@ export default function Home() {
       useCORS: true,
       allowTaint: true,
       backgroundColor: "#ffffff",
-      width: 1123,
-      height: 794,
-      windowWidth: 1123,
-      windowHeight: 794,
+      width: element.offsetWidth,
+      height: element.offsetHeight,
+      windowWidth: element.offsetWidth,
+      windowHeight: element.offsetHeight,
       scrollX: 0,
       scrollY: 0
     });
@@ -866,7 +866,7 @@ export default function Home() {
                         setClasses(updated);
                         saveData({ classes: updated });
                       }}
-                      className="w-full bg-white border border-stone-300 rounded px-3 py-2 text-stone-950 text-sm font-semibold"
+                      className="w-full bg-white border border-stone-300 rounded px-3 py-2 text-stone-955 text-sm font-semibold"
                       placeholder="e.g. 9th"
                     />
                   </div>
@@ -1292,7 +1292,7 @@ export default function Home() {
                 </div>
 
                 {/* PREVIEW CONTAINER - FULL REAL WYSIWYG A4 PAGE */}
-                <div className="flex justify-center overflow-x-auto py-6 bg-stone-200 border border-stone-300 rounded-xl shadow-inner animate-fade-in">
+                <div className="flex justify-center overflow-x-auto py-6 bg-stone-200 border border-stone-300 rounded-xl shadow-inner">
                   <div className="shadow-2xl border border-stone-300 bg-white p-1">
                     {/* Timetable Export Container */}
                     <div
@@ -1346,6 +1346,12 @@ export default function Home() {
                       {/* Timetable wrapper container */}
                       <div className="export-table-wrapper">
                         <table className="export-table">
+                          <colgroup>
+                            <col style={{ width: "115px" }} />
+                            {(timeSlots || []).map((slot) => (
+                              <col key={slot} />
+                            ))}
+                          </colgroup>
                           <thead>
                             <tr>
                               <th className="export-class-col">Class / Time</th>
@@ -1423,7 +1429,7 @@ export default function Home() {
                                           onClick={() => toggleTestCell(row.classId, slotIdx)}
                                           className={`px-0.5 rounded text-3xs font-bold ${
                                             cell.type === "test"
-                                              ? "bg-stone-200 text-stone-850"
+                                              ? "bg-stone-200 text-stone-855"
                                               : "bg-amber-500 text-stone-950"
                                           }`}
                                           title="Toggle TEST"
@@ -1503,6 +1509,12 @@ export default function Home() {
 
           <div className="export-table-wrapper">
             <table className="export-table">
+              <colgroup>
+                <col style={{ width: "115px" }} />
+                {(timeSlots || []).map((slot) => (
+                  <col key={slot} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
                   <th className="export-class-col">Class / Time</th>
@@ -1527,7 +1539,7 @@ export default function Home() {
                       return (
                         <td
                           key={index}
-                          className="bg-white text-stone-950"
+                          className="bg-white text-stone-955"
                         >
                           {cell.type === "test" ? (
                             <span className="export-test-cell select-none">TEST</span>

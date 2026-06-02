@@ -27,13 +27,13 @@ body {
   border-radius: 16px;
 }
 
-/* --- OPTIMIZED PIXEL-BASED A4 LANDSCAPE PRINT RULES --- */
+/* --- EXACT PIXEL-BASED A4 LANDSCAPE PRINT RULES --- */
 .export-page {
   width: 1123px;
   height: 794px;
-  background: #ffffff;
+  background: white;
   box-sizing: border-box;
-  padding: 24px 34px;
+  padding: 28px 42px;
   border: 5px double #111;
   position: relative;
   overflow: hidden;
@@ -42,9 +42,9 @@ body {
 }
 
 .export-header {
-  height: 105px;
+  height: 110px;
   display: grid;
-  grid-template-columns: 115px 1fr 115px;
+  grid-template-columns: 120px 1fr 120px;
   align-items: center;
   border-bottom: 2px solid #111;
   margin-bottom: 18px;
@@ -53,7 +53,7 @@ body {
 
 .export-logo {
   max-width: 70px;
-  max-height: 52px;
+  max-height: 50px;
   object-fit: contain;
 }
 
@@ -63,10 +63,10 @@ body {
 }
 
 .export-title h1 {
-  margin: 0 0 14px 0;
+  margin: 0 0 12px 0;
   font-size: 30px;
   line-height: 1;
-  letter-spacing: 5px;
+  letter-spacing: 4px;
   font-weight: 700;
   color: #000000 !important;
 }
@@ -75,7 +75,7 @@ body {
   margin: 0;
   font-size: 22px;
   line-height: 1;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   font-weight: 700;
   color: #000000 !important;
 }
@@ -88,46 +88,51 @@ body {
 
 .export-table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
 .export-table th,
 .export-table td {
-  border: 2px solid #111;
+  border: 1.5px solid #111;
   text-align: center;
   vertical-align: middle;
   box-sizing: border-box;
+  padding: 4px 3px;
   overflow: hidden;
-  padding: 5px 4px;
   color: #000000 !important;
 }
 
 .export-table th {
-  height: 34px;
-  font-size: 12px;
-  line-height: 1.1;
+  height: 32px;
+  font-size: 11px;
+  line-height: 1.05;
   font-weight: 700;
   white-space: normal;
-  word-break: keep-all;
+  overflow-wrap: break-word;
   background: #ffffff !important;
 }
 
 .export-table td {
-  height: 66px;
+  height: 62px;
   font-size: 12px;
-  line-height: 1.2;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: break-word;
   background: #ffffff !important;
 }
 
 .export-class-col {
-  width: 95px !important;
-  font-size: 20px !important;
+  width: 115px !important;
+  min-width: 115px !important;
+  max-width: 115px !important;
+  font-size: 18px !important;
   font-weight: 700;
   line-height: 1.1;
   white-space: normal;
+  overflow-wrap: normal;
   word-break: normal;
-  overflow: visible;
 }
 
 .export-subject {
@@ -135,7 +140,7 @@ body {
   font-weight: 700;
   font-size: 12px;
   line-height: 1.15;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   white-space: normal;
   overflow-wrap: break-word;
   color: #000000 !important;
@@ -152,7 +157,7 @@ body {
 }
 
 .export-test-cell {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   text-decoration: underline;
   line-height: 1.1;
@@ -161,13 +166,13 @@ body {
 
 .export-footer {
   position: absolute;
-  left: 34px;
-  right: 34px;
+  left: 42px;
+  right: 42px;
   bottom: 26px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #000000 !important;
 }
@@ -195,11 +200,11 @@ body {
     border: 5px double #111 !important;
     box-shadow: none !important;
     page-break-inside: avoid;
-    padding: 6mm 9mm;
+    padding: 7mm 11mm;
   }
   
   .export-header {
-    height: 28mm;
+    height: 29mm;
     margin-bottom: 5mm;
   }
   
