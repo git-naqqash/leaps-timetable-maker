@@ -60,23 +60,26 @@ body {
 .export-title {
   text-align: center;
   color: #000000 !important;
+  font-family: "Times New Roman", Times, serif !important;
 }
 
 .export-title h1 {
-  margin: 0 0 12px 0;
-  font-size: 30px;
-  line-height: 1;
+  margin: 0 0 4px 0;
+  font-size: 28px;
+  line-height: 1.1;
   letter-spacing: 4px;
   font-weight: 700;
+  font-family: "Times New Roman", Times, serif !important;
   color: #000000 !important;
 }
 
 .export-title h2 {
   margin: 0;
-  font-size: 22px;
-  line-height: 1;
+  font-size: 20px;
+  line-height: 1.1;
   letter-spacing: 3px;
   font-weight: 700;
+  font-family: "Times New Roman", Times, serif !important;
   color: #000000 !important;
 }
 

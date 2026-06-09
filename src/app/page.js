@@ -283,7 +283,7 @@ export default function Home() {
       const rows = safeClasses.map((c) => ({
         classId: c.id,
         className: c.name,
-        cells: []
+        cells: new Array(sortedSlots.length).fill(null)
       }));
 
       const busyTeachersPerSlot = {};
@@ -298,13 +298,24 @@ export default function Home() {
         return slot.start >= teacherStartMin && slot.end <= teacherEndMin;
       };
 
-      sortedSlots.forEach((slot) => {
-        rows.forEach((row) => {
+      sortedSlots.forEach((slot, slotIdx) => {
+        // Prioritize classes for which this slot is their very first active slot
+        const sortedRowsForSlot = [...rows].sort((a, b) => {
+          const aSlots = classSlotsMap[a.classId] || [];
+          const bSlots = classSlotsMap[b.classId] || [];
+          const aIsStart = aSlots.length > 0 && aSlots[0].label === slot.label;
+          const bIsStart = bSlots.length > 0 && bSlots[0].label === slot.label;
+          if (aIsStart && !bIsStart) return -1;
+          if (!aIsStart && bIsStart) return 1;
+          return 0;
+        });
+
+        sortedRowsForSlot.forEach((row) => {
           const activeSlots = classSlotsMap[row.classId] || [];
           const isActive = activeSlots.some((s) => s.label === slot.label);
 
           if (!isActive) {
-            row.cells.push({ subject: "-", teacher: "", type: "empty" });
+            row.cells[slotIdx] = { subject: "-", teacher: "", type: "empty" };
           } else {
             const candidates = safeTeachers.filter((t) => {
               const teachesThisClass = (t.allowedClasses || []).includes(row.className);
@@ -319,10 +330,10 @@ export default function Home() {
                 ? chosenTeacher.secondSubject 
                 : chosenTeacher.subject;
 
-              row.cells.push({ subject, teacher: chosenTeacher.name, type: "lecture" });
+              row.cells[slotIdx] = { subject, teacher: chosenTeacher.name, type: "lecture" };
               busyTeachersPerSlot[slot.label].add(chosenTeacher.id);
             } else {
-              row.cells.push({ subject: "-", teacher: "", type: "empty" });
+              row.cells[slotIdx] = { subject: "-", teacher: "", type: "empty" };
             }
           }
         });
@@ -1270,27 +1281,11 @@ export default function Home() {
 
                         {/* Heading Titles */}
                         <div className="export-title">
-                          <h1>
-                            <input
-                              type="text"
-                              value={academyName}
-                              onChange={(e) => {
-                                setAcademyName(e.target.value);
-                                saveData({ academyName: e.target.value });
-                              }}
-                              className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-serif font-black uppercase text-stone-950 w-full"
-                            />
+                          <h1 className="uppercase font-bold text-black select-none">
+                            {academyName}
                           </h1>
-                          <h2>
-                            <input
-                              type="text"
-                              value={headingText}
-                              onChange={(e) => {
-                                setHeadingText(e.target.value);
-                                saveData({ headingText: e.target.value });
-                              }}
-                              className="bg-transparent text-center border-none focus:outline-none focus:ring-1 focus:ring-amber-500 font-serif font-bold uppercase text-stone-850 w-full"
-                            />
+                          <h2 className="uppercase font-bold text-black select-none">
+                            {headingText}
                           </h2>
                         </div>
                         <div className="w-20"></div>
@@ -1343,19 +1338,10 @@ export default function Home() {
 
                       {/* Absolute Footer */}
                       <div className="export-footer font-serif">
-                        <div>
-                          <input
-                            type="text"
-                            value={footerText}
-                            onChange={(e) => {
-                              setFooterText(e.target.value);
-                              saveData({ footerText: e.target.value });
-                            }}
-                            className="bg-transparent font-bold border-none focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-955 w-48 font-serif"
-                            placeholder="LA25092025 V 1.1"
-                          />
+                        <div className="font-bold text-black select-none">
+                          {footerText}
                         </div>
-                        <div className="italic text-stone-950">LEAPS Academy Time Table Maker v1.1</div>
+                        <div className="italic text-stone-950 select-none">LEAPS Academy Time Table Maker v1.1</div>
                       </div>
                     </div>
                   </div>
