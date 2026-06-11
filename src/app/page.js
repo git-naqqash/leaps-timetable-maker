@@ -280,16 +280,12 @@ export default function Home() {
 
       const sortedSlots = Array.from(allUniqueSlotsMap.values()).sort((a, b) => a.start - b.start);
 
+      // Pre-allocate rows
       const rows = safeClasses.map((c) => ({
         classId: c.id,
         className: c.name,
         cells: new Array(sortedSlots.length).fill(null)
       }));
-
-      const usedSubjectsMap = {};
-      rows.forEach((row) => {
-        usedSubjectsMap[row.classId] = new Set();
-      });
 
       const busyTeachersPerSlot = {};
       sortedSlots.forEach((slot) => {
@@ -303,66 +299,139 @@ export default function Home() {
         return slot.start >= teacherStartMin && slot.end <= teacherEndMin;
       };
 
-      sortedSlots.forEach((slot, slotIdx) => {
-        // Prioritize classes for which this slot is their very first active slot
-        const sortedRowsForSlot = [...rows].sort((a, b) => {
-          const aSlots = classSlotsMap[a.classId] || [];
-          const bSlots = classSlotsMap[b.classId] || [];
-          const aIsStart = aSlots.length > 0 && aSlots[0].label === slot.label;
-          const bIsStart = bSlots.length > 0 && bSlots[0].label === slot.label;
-          if (aIsStart && !bIsStart) return -1;
-          if (!aIsStart && bIsStart) return 1;
-          return 0;
+      // Helper function to shuffle array
+      const shuffleArray = (arr) => {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+      };
+
+      // Process each class one by one
+      rows.forEach((row) => {
+        const classObj = safeClasses.find((c) => c.id === row.classId);
+        if (!classObj) return;
+
+        // Gather all unique available subjects for this class
+        const availableLectures = [];
+        const seenSubjects = new Set();
+
+        safeTeachers.forEach((t) => {
+          if ((t.allowedClasses || []).includes(row.className)) {
+            if (t.subject && !seenSubjects.has(t.subject)) {
+              seenSubjects.add(t.subject);
+              availableLectures.push({
+                subject: t.subject,
+                teacher: t.name,
+                teacherId: t.id,
+                availableFrom: t.availableFrom,
+                availableTill: t.availableTill
+              });
+            }
+            if (t.secondSubject && t.secondSubject.trim() !== "" && !seenSubjects.has(t.secondSubject)) {
+              seenSubjects.add(t.secondSubject);
+              availableLectures.push({
+                subject: t.secondSubject,
+                teacher: t.name,
+                teacherId: t.id,
+                availableFrom: t.availableFrom,
+                availableTill: t.availableTill
+              });
+            }
+          }
         });
 
-        sortedRowsForSlot.forEach((row) => {
-          const activeSlots = classSlotsMap[row.classId] || [];
+        // Shuffle candidate lectures for random distribution
+        shuffleArray(availableLectures);
+
+        // Find active slot indices in sortedSlots
+        const activeSlots = classSlotsMap[row.classId] || [];
+        const activeSlotIndices = [];
+        sortedSlots.forEach((slot, idx) => {
           const isActive = activeSlots.some((s) => s.label === slot.label);
-
-          if (!isActive) {
-            row.cells[slotIdx] = { subject: "-", teacher: "", type: "empty" };
+          if (isActive) {
+            activeSlotIndices.push(idx);
           } else {
-            const candidates = safeTeachers.filter((t) => {
-              const teachesThisClass = (t.allowedClasses || []).includes(row.className);
-              const availableInTime = isTeacherAvailableForSlot(t, slot);
-              const notBusy = !busyTeachersPerSlot[slot.label].has(t.id);
-              
-              if (!teachesThisClass || !availableInTime || !notBusy) return false;
+            row.cells[idx] = { subject: "-", teacher: "", type: "empty" };
+          }
+        });
 
-              // Check if teacher has at least one unused subject for this class
-              const isMainSubjectUnused = !usedSubjectsMap[row.classId].has(t.subject);
-              const isSecondSubjectUnused = t.secondSubject && t.secondSubject.trim() !== ""
-                ? !usedSubjectsMap[row.classId].has(t.secondSubject)
-                : false;
+        // Keep track of assigned lecture details per slot index
+        const assignedLectures = {};
 
-              return isMainSubjectUnused || isSecondSubjectUnused;
-            });
+        // Contiguously schedule each active slot sequentially
+        activeSlotIndices.forEach((slotIdx) => {
+          const slot = sortedSlots[slotIdx];
+          let assigned = false;
 
-            if (candidates.length > 0) {
-              const chosenTeacher = candidates[Math.floor(Math.random() * candidates.length)];
-              
-              // Choose which subject to assign: must choose an unused one
-              const isMainUnused = !usedSubjectsMap[row.classId].has(chosenTeacher.subject);
-              const isSecondUnused = chosenTeacher.secondSubject && chosenTeacher.secondSubject.trim() !== ""
-                ? !usedSubjectsMap[row.classId].has(chosenTeacher.secondSubject)
-                : false;
+          // 1. Try to find a direct assignment with no conflict and valid availability
+          for (let i = 0; i < availableLectures.length; i++) {
+            const candidate = availableLectures[i];
+            const isAvailable = isTeacherAvailableForSlot(candidate, slot);
+            const isNotBusy = !busyTeachersPerSlot[slot.label].has(candidate.teacherId);
 
-              let subject = "";
-              if (isMainUnused && isSecondUnused) {
-                // Both are unused, pick one randomly or prefer main
-                subject = Math.random() > 0.5 && chosenTeacher.secondSubject ? chosenTeacher.secondSubject : chosenTeacher.subject;
-              } else if (isMainUnused) {
-                subject = chosenTeacher.subject;
-              } else {
-                subject = chosenTeacher.secondSubject;
+            if (isAvailable && isNotBusy) {
+              row.cells[slotIdx] = { subject: candidate.subject, teacher: candidate.teacher, type: "lecture" };
+              assignedLectures[slotIdx] = candidate;
+              busyTeachersPerSlot[slot.label].add(candidate.teacherId);
+              availableLectures.splice(i, 1);
+              assigned = true;
+              break;
+            }
+          }
+
+          // 2. If no direct assignment is possible, try backtracking swap
+          if (!assigned) {
+            for (let prevSlotIdx of activeSlotIndices) {
+              if (prevSlotIdx >= slotIdx) break; // Only look at earlier slots
+
+              const prevLecture = assignedLectures[prevSlotIdx];
+              if (!prevLecture) continue; // Skip if previous is empty/study period
+
+              // Find a candidate from availableLectures to swap
+              for (let i = 0; i < availableLectures.length; i++) {
+                const candidate = availableLectures[i];
+
+                // Can candidate be scheduled at prevSlotIdx?
+                // Note: we treat prevLecture's teacher as temporarily free at prevSlotIdx
+                const isCandidateAvailableAtPrev = isTeacherAvailableForSlot(candidate, sortedSlots[prevSlotIdx]);
+                const isCandidateNotBusyAtPrev = 
+                  candidate.teacherId === prevLecture.teacherId ||
+                  !busyTeachersPerSlot[sortedSlots[prevSlotIdx].label].has(candidate.teacherId);
+
+                // Can prevLecture be scheduled at current slotIdx?
+                const isPrevAvailableAtCurrent = isTeacherAvailableForSlot(prevLecture, slot);
+                const isPrevNotBusyAtCurrent = !busyTeachersPerSlot[slot.label].has(prevLecture.teacherId);
+
+                if (isCandidateAvailableAtPrev && isCandidateNotBusyAtPrev && isPrevAvailableAtCurrent && isPrevNotBusyAtCurrent) {
+                  // Perform the swap!
+                  // Current slot gets prevLecture
+                  row.cells[slotIdx] = { subject: prevLecture.subject, teacher: prevLecture.teacher, type: "lecture" };
+                  assignedLectures[slotIdx] = prevLecture;
+                  busyTeachersPerSlot[slot.label].add(prevLecture.teacherId);
+
+                  // Previous slot gets candidate
+                  row.cells[prevSlotIdx] = { subject: candidate.subject, teacher: candidate.teacher, type: "lecture" };
+                  assignedLectures[prevSlotIdx] = candidate;
+
+                  // Update busy teachers for previous slot
+                  busyTeachersPerSlot[sortedSlots[prevSlotIdx].label].delete(prevLecture.teacherId);
+                  busyTeachersPerSlot[sortedSlots[prevSlotIdx].label].add(candidate.teacherId);
+
+                  // Remove candidate from available pool
+                  availableLectures.splice(i, 1);
+                  assigned = true;
+                  break;
+                }
               }
 
-              row.cells[slotIdx] = { subject, teacher: chosenTeacher.name, type: "lecture" };
-              usedSubjectsMap[row.classId].add(subject);
-              busyTeachersPerSlot[slot.label].add(chosenTeacher.id);
-            } else {
-              row.cells[slotIdx] = { subject: "Study Period", teacher: "", type: "empty" };
+              if (assigned) break;
             }
+          }
+
+          // 3. Fallback: If everything fails, assign a Study Period filler
+          if (!assigned) {
+            row.cells[slotIdx] = { subject: "Study Period", teacher: "", type: "empty" };
           }
         });
       });
