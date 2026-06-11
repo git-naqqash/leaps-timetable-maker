@@ -286,6 +286,11 @@ export default function Home() {
         cells: new Array(sortedSlots.length).fill(null)
       }));
 
+      const usedSubjectsMap = {};
+      rows.forEach((row) => {
+        usedSubjectsMap[row.classId] = new Set();
+      });
+
       const busyTeachersPerSlot = {};
       sortedSlots.forEach((slot) => {
         busyTeachersPerSlot[slot.label] = new Set();
@@ -321,19 +326,42 @@ export default function Home() {
               const teachesThisClass = (t.allowedClasses || []).includes(row.className);
               const availableInTime = isTeacherAvailableForSlot(t, slot);
               const notBusy = !busyTeachersPerSlot[slot.label].has(t.id);
-              return teachesThisClass && availableInTime && notBusy;
+              
+              if (!teachesThisClass || !availableInTime || !notBusy) return false;
+
+              // Check if teacher has at least one unused subject for this class
+              const isMainSubjectUnused = !usedSubjectsMap[row.classId].has(t.subject);
+              const isSecondSubjectUnused = t.secondSubject && t.secondSubject.trim() !== ""
+                ? !usedSubjectsMap[row.classId].has(t.secondSubject)
+                : false;
+
+              return isMainSubjectUnused || isSecondSubjectUnused;
             });
 
             if (candidates.length > 0) {
               const chosenTeacher = candidates[Math.floor(Math.random() * candidates.length)];
-              const subject = chosenTeacher.secondSubject && Math.random() > 0.5 
-                ? chosenTeacher.secondSubject 
-                : chosenTeacher.subject;
+              
+              // Choose which subject to assign: must choose an unused one
+              const isMainUnused = !usedSubjectsMap[row.classId].has(chosenTeacher.subject);
+              const isSecondUnused = chosenTeacher.secondSubject && chosenTeacher.secondSubject.trim() !== ""
+                ? !usedSubjectsMap[row.classId].has(chosenTeacher.secondSubject)
+                : false;
+
+              let subject = "";
+              if (isMainUnused && isSecondUnused) {
+                // Both are unused, pick one randomly or prefer main
+                subject = Math.random() > 0.5 && chosenTeacher.secondSubject ? chosenTeacher.secondSubject : chosenTeacher.subject;
+              } else if (isMainUnused) {
+                subject = chosenTeacher.subject;
+              } else {
+                subject = chosenTeacher.secondSubject;
+              }
 
               row.cells[slotIdx] = { subject, teacher: chosenTeacher.name, type: "lecture" };
+              usedSubjectsMap[row.classId].add(subject);
               busyTeachersPerSlot[slot.label].add(chosenTeacher.id);
             } else {
-              row.cells[slotIdx] = { subject: "-", teacher: "", type: "empty" };
+              row.cells[slotIdx] = { subject: "Study Period", teacher: "", type: "empty" };
             }
           }
         });
